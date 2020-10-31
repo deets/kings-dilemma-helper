@@ -51,6 +51,7 @@ def consistent(scripted_objects):
         consistent &= all(o.md5 == md5 for o in b)
     return consistent
 
+
 class Script:
 
     MAIN = "__main__"
@@ -125,7 +126,8 @@ def jpath(data, filter_, path=()):
 
 
 def pull(args):
-    with pathlib.Path(args.savegame).open() as inf:
+    savegame = pathlib.Path(args.savegame)
+    with savegame.open() as inf:
         data = json.load(inf)
 
     scripts = []
@@ -141,6 +143,9 @@ def pull(args):
             for path, content in script.includes:
                 save(path, content)
             save(*script.main)
+            with (LUA / "game.json").open("w") as outf, savegame.open("r") as inf:
+                outf.write(inf.read())
+
     else:
         logging.warning("The scripts are inconsistent, please fix this!")
 
