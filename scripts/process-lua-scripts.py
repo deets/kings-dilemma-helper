@@ -193,7 +193,9 @@ def publish_to_atom(args):
             full.parent.mkdir(parents=True, exist_ok=True)
             save(full, content)
         main_path = ATOM_SCRIPT_PATH / f"{script.name}.{script.guid}.ttslua"
+        xml_path = ATOM_SCRIPT_PATH / f"{script.name}.{script.guid}.xml"
         save(main_path, script.main[1])
+        save(xml_path, script.xml[1])
 
 
 def list_savegames(_args):
