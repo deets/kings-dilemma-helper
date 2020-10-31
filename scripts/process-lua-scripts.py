@@ -7,6 +7,7 @@ import logging
 import itertools
 import hashlib
 import operator
+import os
 from collections import defaultdict
 
 
@@ -21,19 +22,24 @@ SAVED_OBJECTS_PATH = LUA / "saved-objects"
 
 ATOM_INCLUDE_PATH = pathlib.Path("~/Documents/Tabletop Simulator/").expanduser()
 ATOM_SCRIPT_PATH = pathlib.Path("/tmp/TabletopSimulator/Tabletop Simulator Lua")
+TMP = pathlib.Path("/tmp")
 
 by_name = operator.attrgetter("name")
 
 
+def stripped_lines(lines):
+    return [line.rstrip() for line in lines]
+
+
 def fix_line_ending(line):
-    return line.rstrip("\n").rstrip("\r") + "\r\n"
+    return line.rstrip() + os.linesep
 
 
 def save(path, content):
     dir_ = path.parent
     dir_.mkdir(parents=True, exist_ok=True)
-    with path.open("wb") as outf:
-        outf.write("".join(fix_line_ending(line) for line in content).encode("utf-8"))
+    with path.open("w", encoding="utf-8") as outf:
+        outf.write(os.linesep.join(line for line in content))
 
 
 def take(data, path):
@@ -51,6 +57,26 @@ def consistent(scripted_objects):
         md5 = next(a).md5
         consistent &= all(o.md5 == md5 for o in b)
     return consistent
+
+
+def inconsintency_report(scripted_objects, write_to_temp=False):
+    clusters = defaultdict(list)
+    for script in scripted_objects:
+        clusters[script.md5].append(script)
+        if write_to_temp:
+            main_path = TMP / f"{script.name}.{script.guid}.ttslua"
+            xml_path = TMP / f"{script.name}.{script.guid}.xml"
+            main_path.write_bytes(script.lua.encode("utf-8"))
+            xml_path.write_bytes(script.raw_xml.encode("utf-8"))
+
+    for cluster in clusters.values():
+        logging.warning(f"{cluster[0].name}: {', '.join(s.guid for s in cluster)}")
+
+
+def normalize_lines(lines):
+    while lines[-1] == "":
+        lines[:] = lines[:-1]
+    lines.append("")
 
 
 def jpath(data, filter_, path=()):
@@ -77,26 +103,34 @@ class Script:
         self.path = path
         self._full_document = full_document
         self._parts = self._process(content)
-        self.xml = (
-            SAVED_OBJECTS_PATH / f"{self.name}.xml",
-            [take(self._full_document, self.path[:-1] + ("XmlUI",))],
-        )
+        self.xml = self._process_xml()
 
     def _process(self, content):
         res = defaultdict(list)
         key = self.MAIN
-
         for line in content.split("\n"):
+            line = line.rstrip()
             if line.startswith("----#include"):
                 candidate = line.split(" ", 1)[1].strip()
                 if key == candidate:
                     key = self.MAIN
-                    res[key].append(f"#include {candidate}\r\n")
+                    res[key].append(f"#include {candidate}")
                 else:
                     key = candidate
             else:
-                res[key].append(line + "\n")
+                res[key].append(line)
+        # we normalize the last lines of the file
+        # this can lead to inconsistencies
+        for lines in res.values():
+            normalize_lines(lines)
         return res
+
+    def _process_xml(self):
+        xml_path = SAVED_OBJECTS_PATH / f"{self.name}.xml"
+        xml_lines = take(self._full_document, self.path[:-1] + ("XmlUI",)).split("\n")
+        xml_lines = [line.rstrip() for line in xml_lines]
+        normalize_lines(xml_lines)
+        return xml_path, xml_lines
 
     @property
     def guid(self):
@@ -107,11 +141,29 @@ class Script:
         return take(self._full_document, self.path[:-1] + ("Nickname",))
 
     @property
+    def lua(self):
+        lines = []
+        for line in self._parts[self.MAIN]:
+            if line.startswith("#include"):
+                candidate = line.split(" ", 1)[1]
+                assert candidate in self._parts
+                lines.append(f"----#include {candidate}")
+                lines.extend(self._parts[candidate])
+                lines.append(f"----#include {candidate}")
+            else:
+                lines.append(line)
+        return os.linesep.join(lines)
+
+    @property
+    def raw_xml(self):
+        return take(self._full_document, self.path[:-1] + ("XmlUI",))
+
+    @property
     def md5(self):
         m = hashlib.md5()
         for script in self._parts.values():
-            m.update("".join(script).encode("utf-8"))
-        m.update(self.xml[1][0].encode("utf-8"))
+            m.update("\n".join(script).encode("utf-8"))
+        m.update("\n".join(self.xml[1]).encode("utf-8"))
         return m.hexdigest()
 
     @property
@@ -133,10 +185,11 @@ class Script:
                 path = SAVED_OBJECTS_PATH / f"{self.name}.ttslua"
             else:
                 path = INCLUDE_PATH / key
-            with path.open("r") as inf:
-                self._parts[key] = inf.readlines()
+            with path.open("r", encoding="utf-8") as inf:
+                self._parts[key] = stripped_lines(inf.readlines())
         path = SAVED_OBJECTS_PATH / f"{self.name}.xml"
-        self.xml = (self.xml[0], [path.read_bytes().decode("utf-8")])
+        with path.open("r", encoding="utf-8") as inf:
+            self.xml = (self.xml[0], stripped_lines(inf.readlines()))
 
     def __repr__(self):
         return f"{self.name}:{self.guid}: {self._parts.keys()}"
@@ -173,6 +226,7 @@ def pull(args):
 
     else:
         logging.warning("The scripts are inconsistent, please fix this!")
+        inconsintency_report(scripts, args.write_to_temp)
 
 
 def publish_to_atom(args):
@@ -211,6 +265,11 @@ def main():
     parser_pull = subparsers.add_parser("pull")
     parser_pull.set_defaults(func=pull)
     parser_pull.add_argument("savegame")
+    parser_pull.add_argument(
+        "-w", "--write-to-temp",
+        action="store_true",
+        help="Write the parsed Lua and XML files to tmp",
+    )
 
     parser_pull = subparsers.add_parser("list-savegames")
     parser_pull.set_defaults(func=list_savegames)
