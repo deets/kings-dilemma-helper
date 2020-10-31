@@ -53,6 +53,22 @@ def consistent(scripted_objects):
     return consistent
 
 
+def jpath(data, filter_, path=()):
+    if len(path) > 1 and path[-1] == filter_:
+        yield (path, data)
+
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            yield from jpath(value, filter_, path + (key,))
+    elif isinstance(data, list):
+        for i, value in enumerate(data):
+            yield from jpath(value, filter_, path + (i,))
+    elif isinstance(data, (str, float, int)):
+        pass
+    else:
+        raise Exception("Unknown Type", path, data)
+
+
 class Script:
 
     MAIN = "__main__"
@@ -117,22 +133,6 @@ class Script:
 
     def __repr__(self):
         return f"{self.name}:{self.guid}: {self._parts.keys()}"
-
-
-def jpath(data, filter_, path=()):
-    if len(path) > 1 and path[-1] == filter_:
-        yield (path, data)
-
-    elif isinstance(data, dict):
-        for key, value in data.items():
-            yield from jpath(value, filter_, path + (key,))
-    elif isinstance(data, list):
-        for i, value in enumerate(data):
-            yield from jpath(value, filter_, path + (i,))
-    elif isinstance(data, (str, float, int)):
-        pass
-    else:
-        raise Exception("Unknown Type", path, data)
 
 
 def load_scripts_from_savegame(savegame):
