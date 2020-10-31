@@ -16,7 +16,7 @@ hammer_location = pass_position_offset + Vector(0, 3, -4.0)
 card_size = Vector(0.3, 0.45, 0)
 placement_offset_position = Vector(0, 3, 0)
 
-function moveVote(position_offset)
+function move_vote(position_offset)
     local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)
     local position = self.getPosition() + rotated(position_offset, self.getRotation())
     for _, v in ipairs(ims) do
@@ -32,12 +32,14 @@ function moveVote(position_offset)
     end
 end
 
-function voteYes()
-    moveVote(yes_position_offset)
-end
-
-function voteNo()
-    moveVote(no_position_offset)
+function vote(player, direction)
+   local position = nil
+   if direction == "yes" then
+      position = yes_position_offset
+   elseif direction == "no" then
+      position = no_position_offset
+   end
+   move_vote(position)
 end
 
 function place_money(offset)
@@ -49,12 +51,21 @@ function place_money(offset)
     local taken = money_bag.takeObject(takeParams)
 end
 
-function passForPower()
+function pass_for(player, kind)
     if voted_for_power() or voted_for_arbitration() then
         return
     end
-    place_money(pass_position_offset)
+    if kind == "power" then
+       place_money(pass_position_offset)
+    elseif kind == "arbitration" then
+       if can_pass_for_arbitration() and not voted_for_power() then
+          local hammer = get_arbitration_hammer()
+          hammer.setPositionSmooth(relative_to_me(hammer_location))
+          place_money(hammer_location + STACKING)
+       end
+    end
 end
+
 
 function voted_for_arbitration()
     local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)
@@ -152,12 +163,4 @@ end
 function set_house_name(player, value)
     house_name = value
     my_player = player
-end
-
-function passForArbitration()
-    if can_pass_for_arbitration() and not voted_for_power() then
-        local hammer = get_arbitration_hammer()
-        hammer.setPositionSmooth(relative_to_me(hammer_location))
-        place_money(hammer_location + STACKING)
-    end
 end
