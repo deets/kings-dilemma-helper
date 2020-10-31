@@ -1,18 +1,23 @@
 #include kd/util.ttslua
 #include kd/common.ttslua
 
-secret_area_position = Vector(0, 0, 0)
+house_name = nil
+my_player = nil
+
+secret_area_position = Vector(0, 0, 2)
+secret_area_size = Vector(1.0, 0.5, 0)
 influence_marker_location = Vector(3, 0, 1.5)
 money_location = Vector(-3, 0, 1.5)
 
 yes_position_offset = Vector(3, 3, -3)
 no_position_offset = Vector(-3, 3, -3)
 pass_position_offset = Vector(0, 3, -2.5)
+hammer_location = pass_position_offset + Vector(0, 3, -4.0)
 card_size = Vector(0.3, 0.45, 0)
 placement_offset_position = Vector(0, 3, 0)
 
 function moveVote(position_offset)
-    local ims = refineTableBy(upCast(self, 10, secret_area_position, Vector(1.0, 0.3, 0)),  filter_influence_markers)
+    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)
     local position = self.getPosition() + rotated(position_offset, self.getRotation())
     for _, v in ipairs(ims) do
         local takeParams = {
@@ -35,17 +40,29 @@ function voteNo()
     moveVote(no_position_offset)
 end
 
-function passForPower()
-    if voted_for_power() then
-        return
-    end
+function place_money(offset)
+    local position = relative_to_me(offset)
     local money_bag = get_money_bag()
-    local position = self.getPosition() + rotated(pass_position_offset, self.getRotation())
-
     local takeParams = {
         position = position
     }
     local taken = money_bag.takeObject(takeParams)
+end
+
+function passForPower()
+    if voted_for_power() or voted_for_arbitration() then
+        return
+    end
+    place_money(pass_position_offset)
+end
+
+function voted_for_arbitration()
+    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)
+    if sum_value(money) > 0 then
+        return true
+    else
+        return false
+    end
 end
 
 function voted_for_power()
@@ -57,15 +74,23 @@ function voted_for_power()
     end
 end
 
+function relative_to_me(pos)
+    return self.getPosition() + rotated(pos, self.getRotation())
+end
+
 function collect_votes(params)
     local vote = params.vote
     local position = params.position
-    local position_offset = yes_position_offset
+    local position_offset = nil
+    local losing_offset = nil
     if vote == "yes" then
         position_offset = yes_position_offset
+        losing_offset = no_position_offset
     else
         position_offset = no_position_offset
+        losing_offset = yes_position_offset
     end
+    -- transfer our winning influence markers
     local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)
     for _, marker in pairs(ims) do
         if marker.getQuantity() > -1 then
@@ -80,22 +105,59 @@ function collect_votes(params)
         marker.setPositionSmooth(position)
         position = position + STACKING
     end
+
+    -- transfer the losing markers back into the stash
+    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)
+    local losing_position = relative_to_me(influence_marker_location) + STACKING
+    for _, marker in pairs(ims) do
+        if marker.getQuantity() > -1 then
+            for i = 1, marker.getQuantity() do
+                local tp = {
+                    position = Vector(losing_position),
+                }
+                marker.takeObject(tp)
+                losing_position = losing_position + STACKING
+            end
+        end
+        marker.setPositionSmooth(losing_position)
+        losing_position = losing_position + STACKING
+    end
     return position
 end
 
-function influence_placement_position()
-    return self.getPosition() + rotated(influence_marker_location, self.getRotation())
+function influence_placement_position(params)
+    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))
+    local total = ims_count + params.gain
+    print("...")
+    if my_player then
+        my_player.broadcast("You should have " .. total .. " influence")
+    end
+    return relative_to_me(influence_marker_location)
 end
 
 function collect_pass_money()
-    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)
-    local dest = self.getPosition() + money_location + STACKING
+    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)
+    print("money:", #money)
+    local dest = relative_to_me(money_location) + STACKING
     for _, coin in pairs(money) do
-        coin.setPositionSmooth(dest, false, false)
+        coin.setPositionSmooth(dest)
         dest = dest + STACKING
     end
 end
 
 function test()
     print("voted for power: ", voted_for_power())
+end
+
+function set_house_name(player, value)
+    house_name = value
+    my_player = player
+end
+
+function passForArbitration()
+    if can_pass_for_arbitration() and not voted_for_power() then
+        local hammer = get_arbitration_hammer()
+        hammer.setPositionSmooth(relative_to_me(hammer_location))
+        place_money(hammer_location + STACKING)
+    end
 end

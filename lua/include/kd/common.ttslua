@@ -1,4 +1,5 @@
 MONEY_BAG = "c94778"
+ARBITRATION_HAMMER = "6aa521"
 BOX = 3
 PLAYER_MAT_NAME = "player mat"
 STACKING = Vector(0, 1.2, 0)
@@ -7,6 +8,15 @@ function get_money_bag()
    return getObjectFromGUID(MONEY_BAG)
 end
 
+function get_arbitration_hammer()
+    return getObjectFromGUID(ARBITRATION_HAMMER)
+end
+
+function can_pass_for_arbitration()
+    local hammer = get_arbitration_hammer()
+    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)
+    return #money == 0
+end
 
 function sum_value(all_marker_objects)
     local total = 0
@@ -37,4 +47,3 @@ function get_all_player_mats()
     end
     return res
 end
-
