@@ -1,0 +1,101 @@
+#include kd/util.ttslua
+#include kd/common.ttslua
+
+secret_area_position = Vector(0, 0, 0)
+influence_marker_location = Vector(3, 0, 1.5)
+money_location = Vector(-3, 0, 1.5)
+
+yes_position_offset = Vector(3, 3, -3)
+no_position_offset = Vector(-3, 3, -3)
+pass_position_offset = Vector(0, 3, -2.5)
+card_size = Vector(0.3, 0.45, 0)
+placement_offset_position = Vector(0, 3, 0)
+
+function moveVote(position_offset)
+    local ims = refineTableBy(upCast(self, 10, secret_area_position, Vector(1.0, 0.3, 0)),  filter_influence_markers)
+    local position = self.getPosition() + rotated(position_offset, self.getRotation())
+    for _, v in ipairs(ims) do
+        local takeParams = {
+            position = position
+        }
+        local taken = v.takeObject(takeParams)
+        if taken == nil then
+            -- we did not take so it was not a stack. Move the object instead
+            v.setPositionSmooth(position, false, false)
+        end
+        break
+    end
+end
+
+function voteYes()
+    moveVote(yes_position_offset)
+end
+
+function voteNo()
+    moveVote(no_position_offset)
+end
+
+function passForPower()
+    if voted_for_power() then
+        return
+    end
+    local money_bag = get_money_bag()
+    local position = self.getPosition() + rotated(pass_position_offset, self.getRotation())
+
+    local takeParams = {
+        position = position
+    }
+    local taken = money_bag.takeObject(takeParams)
+end
+
+function voted_for_power()
+    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)
+    if sum_value(money) > 0 then
+        return true
+    else
+        return false
+    end
+end
+
+function collect_votes(params)
+    local vote = params.vote
+    local position = params.position
+    local position_offset = yes_position_offset
+    if vote == "yes" then
+        position_offset = yes_position_offset
+    else
+        position_offset = no_position_offset
+    end
+    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)
+    for _, marker in pairs(ims) do
+        if marker.getQuantity() > -1 then
+            for i = 1, marker.getQuantity() do
+                local tp = {
+                    position = Vector(position),
+                }
+                marker.takeObject(tp)
+                position = position + STACKING
+            end
+        end
+        marker.setPositionSmooth(position)
+        position = position + STACKING
+    end
+    return position
+end
+
+function influence_placement_position()
+    return self.getPosition() + rotated(influence_marker_location, self.getRotation())
+end
+
+function collect_pass_money()
+    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)
+    local dest = self.getPosition() + money_location + STACKING
+    for _, coin in pairs(money) do
+        coin.setPositionSmooth(dest, false, false)
+        dest = dest + STACKING
+    end
+end
+
+function test()
+    print("voted for power: ", voted_for_power())
+end

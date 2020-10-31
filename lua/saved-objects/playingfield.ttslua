@@ -1,0 +1,57 @@
+#include kd/util.ttslua
+#include kd/common.ttslua
+
+voting_area_location = Vector(0, 0, 13.8)
+voting_area_extend = Vector(1, 0.15, 0)
+
+function influence_markers_in_voting_area()
+    return refineTableBy(
+        upCast(self, 10, voting_area_location, voting_area_extend),
+        filter_influence_markers
+    )
+end
+
+function resolve(_, vote)
+    local ims = influence_markers_in_voting_area()
+    local im_count = sum_value(ims)
+    local pms = get_all_player_mats()
+    local pass_for_power = {}
+    for _, player_mat in pairs(pms) do
+        local g = player_mat.getGUID()
+        if player_mat.call("voted_for_power", {}) then
+            print("voted for power:", g)
+            table.insert(pass_for_power, g)
+        end
+    end
+
+    if #pass_for_power > 0 and #ims > 0 then
+        local influence_to_distribute = math.floor((im_count - (im_count % #pass_for_power)) / #pass_for_power)
+        print("players voting for power: ", #pass_for_power, ", influence per player: ", influence_to_distribute)
+        local current_influence_marker = table.remove(ims, 1)
+        for _, pm_guid in pairs(pass_for_power) do
+            local pillepalle = getObjectFromGUID(pm_guid)
+            local ppos = pillepalle.call("influence_placement_position", {}) +  Vector(0, 3, 0)
+            for i=1, influence_to_distribute do
+                if current_influence_marker.getQuantity()  == -1 then
+                    current_influence_marker.setPositionSmooth(ppos, false, false)
+                    -- guard against over-drawing
+                    if #ims > 0 then
+                        current_influence_marker = table.remove(ims, 1)
+                    end
+                else -- we have a stack
+                    local tp = {
+                        position = Vector(ppos),
+                    }
+                    current_influence_marker.takeObject(tp)
+                end
+                ppos = ppos + STACKING
+            end
+            pillepalle.call("collect_pass_money", {})
+        end
+    end
+
+    local cpos = self.getPosition() + rotated(voting_area_location, self.getRotation()) + STACKING
+    for _, thingamabob in pairs(get_all_player_mats()) do
+        cpos = thingamabob.call("collect_votes", { vote=vote, position=cpos  })
+    end
+end

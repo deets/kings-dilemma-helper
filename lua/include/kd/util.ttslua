@@ -1,0 +1,58 @@
+function rotated(v, r)
+    v = Vector(v)
+    v:rotateOver("x", r[1])
+    v:rotateOver("y", r[2])
+    v:rotateOver("z", r[3])
+    return v
+end
+
+--[[
+obj is the source of the upCast
+
+dist is the length of the cast, e.g. if you cast in a box shape it's the height of the box
+offset is a vector from the origin
+size is the size. It's a vector that is multiplied by the size
+]]
+DEBUG = true
+function upCast(obj, dist, offset, size)
+    local dist = dist or 1
+    local offset = offset or Vector(0, 0, 0)
+    local size = size or Vector(1, 1, 0)
+    local oPos = obj.getPosition()
+    local oBounds = obj.getBoundsNormalized()
+    local oRot = obj.getRotation()
+    offset = rotated(offset, oRot)
+    local orig = Vector(oPos[1],oPos[2],oPos[3]) + offset
+    local siz = {oBounds.size.x*size[1], dist, oBounds.size.z*size[2]}
+    local orient = {oRot[1],oRot[2],oRot[3]}
+    local hits = Physics.cast({
+        origin       = orig,
+        direction    = {0,1,0},
+        type         = BOX,
+        size         = siz,
+        orientation  = orient,
+        max_distance = 0,
+        debug        = DEBUG,
+    })
+    local hitObjects = {}
+    for i,v in pairs(hits) do
+        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end
+    end
+    return hitObjects
+end
+
+function refineTableBy(t, func)
+    if func==nil then error("No func supplied to refineTableBy") end
+    local refinedTable = {}
+    for _, v in ipairs(t) do
+        if func(v) then
+            table.insert(refinedTable, v)
+        end
+    end
+    return refinedTable
+end
+
+function starts_with(str, start)
+   return str:sub(1, #start) == start
+end
+

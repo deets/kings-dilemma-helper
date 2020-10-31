@@ -1,0 +1,40 @@
+MONEY_BAG = "c94778"
+BOX = 3
+PLAYER_MAT_NAME = "player mat"
+STACKING = Vector(0, 1.2, 0)
+
+function get_money_bag()
+   return getObjectFromGUID(MONEY_BAG)
+end
+
+
+function sum_value(all_marker_objects)
+    local total = 0
+    for _, im in ipairs(all_marker_objects) do
+        local q = im.getQuantity()
+        if q == -1 then
+            q = 1
+        end
+        total = total + q
+    end
+    return total
+end
+
+function filter_influence_markers(o)
+    return starts_with(o.name, "Custom_Token") and o.getName() == "influence-marker"
+end
+
+function filter_money_markers(o)
+    return o.getName() == "money"
+end
+
+function get_all_player_mats()
+    local res = {}
+    for _, v in ipairs(getAllObjects()) do
+        if v.getName() == PLAYER_MAT_NAME then
+            table.insert(res, v)
+        end
+    end
+    return res
+end
+
