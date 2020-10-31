@@ -16,6 +16,10 @@ hammer_location = pass_position_offset + Vector(0, 3, -4.0)
 card_size = Vector(0.3, 0.45, 0)
 placement_offset_position = Vector(0, 3, 0)
 
+function set_player_visibility(player)
+   self.UI.setAttribute("container", "visibility", player.color)
+end
+
 function move_vote(position_offset)
     local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)
     local position = self.getPosition() + rotated(position_offset, self.getRotation())
@@ -33,6 +37,7 @@ function move_vote(position_offset)
 end
 
 function vote(player, direction)
+   set_player_visibility(player)   
    local position = nil
    if direction == "yes" then
       position = yes_position_offset
@@ -52,6 +57,7 @@ function place_money(offset)
 end
 
 function pass_for(player, kind)
+    set_player_visibility(player)      
     if voted_for_power() or voted_for_arbitration() then
         return
     end
