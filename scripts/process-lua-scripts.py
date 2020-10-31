@@ -19,6 +19,8 @@ IGNORED_SAVE_GAMES = ["SaveFileInfos.json", "TS_AutoSave.json"]
 INCLUDE_PATH = LUA / "include"
 SAVED_OBJECTS_PATH = LUA / "saved-objects"
 
+ATOM_INCLUDE_PATH = pathlib.Path("~/Documents/Tabletop Simulator/").expanduser()
+ATOM_SCRIPT_PATH = pathlib.Path("/tmp/TabletopSimulator/Tabletop Simulator Lua")
 
 by_name = operator.attrgetter("name")
 
@@ -29,8 +31,7 @@ def fix_line_ending(line):
 
 def save(path, content):
     dir_ = path.parent
-    if not dir_.exists():
-        dir_.mkdir(parents=True)
+    dir_.mkdir(parents=True, exist_ok=True)
     with path.open("wb") as outf:
         outf.write("".join(fix_line_ending(line) for line in content).encode("utf-8"))
 
@@ -105,6 +106,15 @@ class Script:
             self._parts[self.MAIN]
         )
 
+    def update_from_repository(self):
+        for key in self._parts:
+            if key == self.MAIN:
+                path = SAVED_OBJECTS_PATH / f"{self.name}.ttslua"
+            else:
+                path = INCLUDE_PATH / key
+            with path.open("r") as inf:
+                self._parts[key] = inf.readlines()
+
     def __repr__(self):
         return f"{self.name}:{self.guid}: {self._parts.keys()}"
 
@@ -125,8 +135,7 @@ def jpath(data, filter_, path=()):
         raise Exception("Unknown Type", path, data)
 
 
-def pull(args):
-    savegame = pathlib.Path(args.savegame)
+def load_scripts_from_savegame(savegame):
     with savegame.open() as inf:
         data = json.load(inf)
 
@@ -134,6 +143,12 @@ def pull(args):
     for path, script in jpath(data, "LuaScript"):
         if script:
             scripts.append(Script(path, script, data))
+    return scripts
+
+
+def pull(args):
+    savegame = pathlib.Path(args.savegame)
+    scripts = load_scripts_from_savegame(savegame)
 
     if consistent(scripts):
         logging.info("All scripts consistent, placing them into the repository")
@@ -148,6 +163,27 @@ def pull(args):
 
     else:
         logging.warning("The scripts are inconsistent, please fix this!")
+
+
+def publish_to_atom(args):
+    scripts = load_scripts_from_savegame(LUA / "game.json")
+    # In theory we should have a consistent state in the
+    # scripts, but I pull them from the repository
+    # nonetheless.
+    for script in scripts:
+        script.update_from_repository()
+
+    ATOM_INCLUDE_PATH.mkdir(parents=True, exist_ok=True)
+
+    for script in scripts:
+        # includes are written many times over. So mote it be
+        for path, content in script.includes:
+            part = path.relative_to(INCLUDE_PATH)
+            full = ATOM_INCLUDE_PATH / part
+            full.parent.mkdir(parents=True, exist_ok=True)
+            save(full, content)
+        main_path = ATOM_SCRIPT_PATH / f"{script.name}.{script.guid}.ttslua"
+        save(main_path, script.main[1])
 
 
 def list_savegames(_args):
@@ -166,6 +202,14 @@ def main():
 
     parser_pull = subparsers.add_parser("list-savegames")
     parser_pull.set_defaults(func=list_savegames)
+
+    parser_pull = subparsers.add_parser(
+        "publish-to-atom",
+        help="Takes the current state of the game in the repository "
+             "and uses it to populate the Atom save locations as "
+             "expected by the TTS Lua plugin."
+    )
+    parser_pull.set_defaults(func=publish_to_atom)
 
     args = parser.parse_args()
     logging.basicConfig(
