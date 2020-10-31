@@ -77,6 +77,10 @@ class Script:
         self.path = path
         self._full_document = full_document
         self._parts = self._process(content)
+        self.xml = (
+            SAVED_OBJECTS_PATH / f"{self.name}.xml",
+            [take(self._full_document, self.path[:-1] + ("XmlUI",))],
+        )
 
     def _process(self, content):
         res = defaultdict(list)
@@ -107,6 +111,7 @@ class Script:
         m = hashlib.md5()
         for script in self._parts.values():
             m.update("".join(script).encode("utf-8"))
+        m.update(self.xml[1][0].encode("utf-8"))
         return m.hexdigest()
 
     @property
@@ -130,6 +135,8 @@ class Script:
                 path = INCLUDE_PATH / key
             with path.open("r") as inf:
                 self._parts[key] = inf.readlines()
+        path = SAVED_OBJECTS_PATH / f"{self.name}.xml"
+        self.xml = (self.xml[0], [path.read_bytes().decode("utf-8")])
 
     def __repr__(self):
         return f"{self.name}:{self.guid}: {self._parts.keys()}"
@@ -158,8 +165,11 @@ def pull(args):
             for path, content in script.includes:
                 save(path, content)
             save(*script.main)
-            with (LUA / "game.json").open("w") as outf, savegame.open("r") as inf:
-                outf.write(inf.read())
+            save(*script.xml)
+
+        with (LUA / "game.json").open("w") as outf, savegame.open("r") as inf:
+            outf.write(inf.read())
+
 
     else:
         logging.warning("The scripts are inconsistent, please fix this!")

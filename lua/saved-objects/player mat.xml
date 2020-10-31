@@ -1,0 +1,23 @@
+<Defaults>
+    <Text color="#DDDDDD" fontSize="20" alignment="MiddleLeft"/>
+    <Button fontSize="20" textOutline="#ffffff"/>
+</Defaults>
+
+<VerticalLayout scale=".5" width="380" height="80" position="0 80 -22" rotation="0 0 180">
+    <HorizontalLayout>
+        <Text>Yes</Text>
+        <Button onClick="voteYes">+</Button>
+    </HorizontalLayout>
+    <HorizontalLayout >
+        <Text>Pass</Text>
+        <Button onClick="passForPower">Power</Button>
+        <Button onClick="passForArbitration">Arbiter</Button>
+    </HorizontalLayout>
+    <HorizontalLayout>
+        <Text>No</Text>
+        <Button onClick="voteNo">+</Button>
+    </HorizontalLayout>
+    <HorizontalLayout>
+        <Button onClick="test">Test</Button>
+    </HorizontalLayout>
+</VerticalLayout>

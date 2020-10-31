@@ -1,0 +1,12 @@
+<Defaults>
+    <Text color="#DDDDDD" fontSize="20" alignment="MiddleLeft"/>
+    <Button fontSize="20" textOutline="#ffffff"/>
+</Defaults>
+
+<VerticalLayout scale=".1" width="400" height="60" position="0 105 -22" rotation="0 0 180">
+    <HorizontalLayout>
+        <Text>Resolve Vote</Text>
+        <Button onClick="resolve(yes)">Yes</Button>
+        <Button onClick="resolve(no)">No</Button>
+    </HorizontalLayout>
+</VerticalLayout>
