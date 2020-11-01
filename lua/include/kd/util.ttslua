@@ -61,3 +61,19 @@ end
 function starts_with(str, start)
    return str:sub(1, #start) == start
 end
+
+
+function after(delay, func, ...)
+    local params = {...}
+    function after_routine()
+        if type(delay) == 'function' then
+            repeat coroutine.yield(0) until not delay()
+        else
+            local after_time = os.clock() + delay
+            repeat coroutine.yield(0) until os.clock() >= after_time
+        end
+        func(unpack(params))
+        return 1
+    end
+    startLuaCoroutine(self, 'after_routine')
+end
