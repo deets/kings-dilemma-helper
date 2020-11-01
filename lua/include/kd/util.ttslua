@@ -1,3 +1,6 @@
+-- This allows us to see the physics casts being performed
+DEBUG_CASTS = true
+
 function rotated(v, r)
     v = Vector(v)
     v:rotateOver("x", r[1])
@@ -18,7 +21,6 @@ dist is the length of the cast, e.g. if you cast in a box shape it's the height 
 offset is a vector from the origin
 size is the size. It's a vector that is multiplied by the size of the object itself.
 ]]
-DEBUG = true
 function upCast(obj, dist, offset, size)
     local dist = dist or 1
     local offset = offset or Vector(0, 0, 0)
@@ -36,7 +38,7 @@ function upCast(obj, dist, offset, size)
         size         = siz,
         orientation  = orient,
         max_distance = 0,
-        debug        = DEBUG,
+        debug        = DEBUG_CASTS,
     })
     local hitObjects = {}
     for i,v in pairs(hits) do

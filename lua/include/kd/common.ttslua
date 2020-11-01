@@ -1,3 +1,7 @@
+-- This toggles the player control hide feature which is great
+-- for the game but annoys when debugging
+HIDE_CONTROLS_FOR_OTHER_PLAYERS = false
+-- 
 MONEY_BAG = "c94778"
 ARBITRATION_HAMMER = "6aa521"
 BOX = 3

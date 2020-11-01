@@ -17,7 +17,9 @@ card_size = Vector(0.3, 0.45, 0)
 placement_offset_position = Vector(0, 3, 0)
 
 function set_player_visibility(player)
-   self.UI.setAttribute("container", "visibility", player.color)
+   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then
+      self.UI.setAttribute("container", "visibility", player.color)
+   end
 end
 
 function move_vote(position_offset)
