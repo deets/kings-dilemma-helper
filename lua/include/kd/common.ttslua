@@ -1,6 +1,6 @@
 -- This toggles the player control hide feature which is great
 -- for the game but annoys when debugging
-HIDE_CONTROLS_FOR_OTHER_PLAYERS = false
+HIDE_CONTROLS_FOR_OTHER_PLAYERS = true
 --
 PLAYINGFIELD = "8b8887"
 MONEY_BAG = "c94778"

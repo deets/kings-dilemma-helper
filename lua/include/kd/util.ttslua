@@ -1,5 +1,5 @@
 -- This allows us to see the physics casts being performed
-DEBUG_CASTS = true
+DEBUG_CASTS = false
 
 function rotated(v, r)
    v = Vector(v)
