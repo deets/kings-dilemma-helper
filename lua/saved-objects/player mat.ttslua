@@ -94,13 +94,17 @@ function voted_for_power()
     end
 end
 
-function count_votes(position)
+function collect_voting_items(position)
    local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)
    local votes = refineTableBy(
       items,
       filter_money_or_influence
    )
-   return sum_value(votes)
+   return votes
+end
+
+function count_votes(position)
+   return sum_value(collect_voting_items(position))
 end
 
 
@@ -110,42 +114,53 @@ function collect_votes(params)
     local position_offset = nil
     local losing_offset = nil
     if vote == "yes" then
-        position_offset = yes_position_offset
+        winning_offset = yes_position_offset
         losing_offset = no_position_offset
     else
-        position_offset = no_position_offset
+        winning_offset = no_position_offset
         losing_offset = yes_position_offset
     end
     -- transfer our winning influence markers
-    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)
+    local ims = collect_voting_items(winning_offset)
     for _, marker in pairs(ims) do
-        if marker.getQuantity() > -1 then
-            for i = 1, marker.getQuantity() do
-                local tp = {
-                    position = Vector(position),
-                }
-                marker.takeObject(tp)
-                position = position + STACKING
-            end
-        end
-        marker.setPositionSmooth(position)
-        position = position + STACKING
+       local real_position = position
+       if marker.getName() == "money" then
+          real_position = get_money_bag().getPosition() + STACKING * 4
+       end
+       if marker.getQuantity() > -1 then
+          for i = 1, marker.getQuantity() do
+             local tp = {
+                position = Vector(real_position),
+             }
+             marker.takeObject(tp)
+             real_position = real_position + STACKING
+             position = position + STACKING
+          end
+       end
+       marker.setPositionSmooth(real_position)
+       position = position + STACKING
     end
 
     -- transfer the losing markers back into the stash
-    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)
+    ims = collect_voting_items(losing_offset)
     local losing_position = relative_to_me(self, influence_marker_location) + STACKING
     for _, marker in pairs(ims) do
-        if marker.getQuantity() > -1 then
-            for i = 1, marker.getQuantity() do
-                local tp = {
-                    position = Vector(losing_position),
-                }
-                marker.takeObject(tp)
-                losing_position = losing_position + STACKING
+       local real_position = losing_position
+       if marker.getName() == "money" then
+          real_position = relative_to_me(self, money_location) + STACKING
+       end
+
+       if marker.getQuantity() > -1 then
+          for i = 1, marker.getQuantity() do
+             local tp = {
+                position = Vector(real_position),
+             }
+             marker.takeObject(tp)
+             real_position = real_position + STACKING
+             losing_position = losing_position + STACKING
             end
         end
-        marker.setPositionSmooth(losing_position)
+        marker.setPositionSmooth(real_position)
         losing_position = losing_position + STACKING
     end
     return position
