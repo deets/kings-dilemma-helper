@@ -8,7 +8,7 @@ end
 
 
 function relative_to_me(obj, pos)
-   return obj.getPosition() + rotated(pos * obj.getScale(), obj.getRotation())
+   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())
 end
 
 --[[
@@ -24,10 +24,10 @@ function upCast(obj, dist, offset, size)
     local offset = offset or Vector(0, 0, 0)
     local size = size or Vector(1, 1, 0)
     
-    local oBounds = obj.getBoundsNormalized()
+    local oBounds = obj.getBoundsNormalized().size
     local oRot = obj.getRotation()
     local orig = relative_to_me(obj, offset)
-    local siz = {oBounds.size.x*size[1], dist, oBounds.size.z*size[2]}
+    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}
     local orient = {oRot[1],oRot[2],oRot[3]}
     local hits = Physics.cast({
         origin       = orig,

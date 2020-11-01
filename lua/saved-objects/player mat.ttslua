@@ -4,15 +4,15 @@
 house_name = nil
 my_player = nil
 
-secret_area_position = Vector(0, 0, 0.44)
+secret_area_position = Vector(0, 0, 0.22)
 secret_area_size = Vector(1.0, 0.5, 0)
-influence_marker_location = Vector(0.65, 0, 0.323)
-money_location = Vector(-0.65, 0, 0.323)
+influence_marker_location = Vector(0.325, 0, 0.16)
+money_location = Vector(-0.325, 0, 0.16)
 
-yes_position_offset = Vector(0.65, 3, -0.65)
-no_position_offset = Vector(-0.65, 3, -0.65)
-pass_position_offset = Vector(0, 3, -0.5)
-hammer_location = pass_position_offset + Vector(0, 3, -0.86)
+yes_position_offset = Vector(0.325, 3, -0.325)
+no_position_offset = Vector(-0.325, 3, -0.325)
+pass_position_offset = Vector(0, 3, -0.25)
+hammer_location = pass_position_offset + Vector(0, 3, -0.43)
 card_size = Vector(0.3, 0.45, 0)
 placement_offset_position = Vector(0, 3, 0)
 
@@ -142,7 +142,6 @@ end
 function influence_placement_position(params)
     local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))
     local total = ims_count + params.gain
-    print("...")
     if my_player then
         my_player.broadcast("You should have " .. total .. " influence")
     end
@@ -151,7 +150,7 @@ end
 
 function collect_pass_money()
     local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)
-    print("money:", #money)
+    log(#money, "collect_pass_money")
     local dest = relative_to_me(self, money_location) + STACKING
     for _, coin in pairs(money) do
         coin.setPositionSmooth(dest)

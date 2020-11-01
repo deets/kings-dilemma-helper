@@ -1,7 +1,7 @@
 #include kd/util.ttslua
 #include kd/common.ttslua
 
-voting_area_location = Vector(0, 0, 13.8)
+voting_area_location = Vector(0, 0, 0.42)
 voting_area_extend = Vector(1, 0.15, 0)
 
 function influence_markers_in_voting_area()
@@ -19,14 +19,15 @@ function resolve(_, vote)
     for _, player_mat in pairs(pms) do
         local g = player_mat.getGUID()
         if player_mat.call("voted_for_power", {}) then
-            print("voted for power:", g)
+            log(g, "voted for power")
             table.insert(pass_for_power, g)
         end
     end
 
     if #pass_for_power > 0 and #ims > 0 then
         local influence_to_distribute = math.floor((im_count - (im_count % #pass_for_power)) / #pass_for_power)
-        print("players voting for power: ", #pass_for_power, ", influence per player: ", influence_to_distribute)
+        log(#pass_for_power, "players voting for power: ")
+        log(influence_to_distribute, "influence per player: ")
         local current_influence_marker = table.remove(ims, 1)
         for _, pm_guid in pairs(pass_for_power) do
             local pillepalle = getObjectFromGUID(pm_guid)
