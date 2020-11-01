@@ -158,11 +158,3 @@ function collect_pass_money()
     end
 end
 
-function test()
-    print("voted for power: ", voted_for_power())
-end
-
-function set_house_name(player, value)
-    house_name = value
-    my_player = player
-end
