@@ -2,11 +2,11 @@
 DEBUG_CASTS = true
 
 function rotated(v, r)
-    v = Vector(v)
-    v:rotateOver("x", r[1])
-    v:rotateOver("y", r[2])
-    v:rotateOver("z", r[3])
-    return v
+   v = Vector(v)
+   v:rotateOver("z", r[3])
+   v:rotateOver("x", r[1])
+   v:rotateOver("y", r[2])
+   return v
 end
 
 
@@ -25,7 +25,7 @@ function upCast(obj, dist, offset, size)
     local dist = dist or 1
     local offset = offset or Vector(0, 0, 0)
     local size = size or Vector(1, 1, 0)
-    
+
     local oBounds = obj.getBoundsNormalized().size
     local oRot = obj.getRotation()
     local orig = relative_to_me(obj, offset)
