@@ -58,3 +58,17 @@ function resolve(_, vote)
         cpos = thingamabob.call("collect_votes", { vote=vote, position=cpos  })
     end
 end
+
+
+function count_votes()
+   local yes_votes = 0
+   local no_votes = 0
+   local pms = get_all_player_mats()
+   for _, player_mat in pairs(pms) do
+      local voting_state = player_mat.call("voting_state", {})
+      yes_votes = yes_votes + voting_state.yes
+      no_votes = no_votes + voting_state.no
+   end
+   self.UI.setValue("yes_vote_count", "" .. yes_votes)
+   self.UI.setValue("no_vote_count", "" .. no_votes)
+end

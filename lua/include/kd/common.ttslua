@@ -2,11 +2,16 @@
 -- for the game but annoys when debugging
 HIDE_CONTROLS_FOR_OTHER_PLAYERS = false
 --
+PLAYINGFIELD = "8b8887"
 MONEY_BAG = "c94778"
 ARBITRATION_HAMMER = "6aa521"
 BOX = 3
 PLAYER_MAT_NAME = "player mat"
 STACKING = Vector(0, 1.2, 0)
+
+function get_playingfield()
+   return getObjectFromGUID(PLAYINGFIELD)
+end
 
 function get_money_bag()
    return getObjectFromGUID(MONEY_BAG)
@@ -41,6 +46,11 @@ end
 function filter_money_markers(o)
     return o.getName() == "money"
 end
+
+function filter_money_or_influence(o)
+   return filter_money_markers(o) or filter_influence_markers(o)
+end
+
 
 function get_all_player_mats()
     local res = {}

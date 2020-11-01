@@ -1,12 +1,19 @@
 <Defaults>
-    <Text color="#DDDDDD" fontSize="20" alignment="MiddleLeft"/>
-    <Button fontSize="20" textOutline="#ffffff"/>
+    <Text color="#DDDDDD" fontSize="60" alignment="MiddleLeft"/>
+    <Button fontSize="40" textOutline="#ffffff"/>
 </Defaults>
 
-<VerticalLayout scale=".1" width="400" height="60" position="0 105 -22" rotation="0 0 180">
+<VerticalLayout scale=".1" width="600" height="200" position="0 120 -22" rotation="0 0 180">
     <HorizontalLayout>
         <Text>Resolve Vote</Text>
         <Button onClick="resolve(yes)">Yes</Button>
         <Button onClick="resolve(no)">No</Button>
     </HorizontalLayout>
+    <HorizontalLayout>
+        <Text>Yes:</Text>
+        <Text id="yes_vote_count">0</Text>
+        <Text>No:</Text>
+        <Text id="no_vote_count">0</Text>
+    </HorizontalLayout>
+    
 </VerticalLayout>

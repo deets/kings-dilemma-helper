@@ -47,6 +47,7 @@ function vote(player, direction)
       position = no_position_offset
    end
    move_vote(position)
+   after(1.0, function() get_playingfield().call("count_votes") end)
 end
 
 function place_money(offset)
@@ -91,6 +92,15 @@ function voted_for_power()
     else
         return false
     end
+end
+
+function count_votes(position)
+   local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)
+   local votes = refineTableBy(
+      items,
+      filter_money_or_influence
+   )
+   return sum_value(votes)
 end
 
 
@@ -158,4 +168,20 @@ function collect_pass_money()
         coin.setPositionSmooth(dest)
         dest = dest + STACKING
     end
+end
+
+function voting_state()
+   local res = { yes=0, no=0, pass=nil, mat=self.getGUID() }
+
+   if voted_for_power() then
+      res.pass = "power"
+   elseif voted_for_arbitration() then
+      res.pass = "arbitration"
+   end
+
+   res.yes = count_votes(yes_position_offset)
+   res.no = count_votes(no_position_offset)
+
+   log(res, "voting state")
+   return res
 end
