@@ -7,7 +7,7 @@
     <HorizontalLayout>
         <Text>Vote</Text>
         <Button onClick="vote(yes)">Yes</Button>
-        <Button onClick="vote(no)">No</Button>        
+        <Button onClick="vote(no)">No</Button>
     </HorizontalLayout>
     <HorizontalLayout >
         <Text>Pass</Text>

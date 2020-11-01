@@ -39,7 +39,7 @@ function move_vote(position_offset)
 end
 
 function vote(player, direction)
-   set_player_visibility(player)   
+   set_player_visibility(player)
    local position = nil
    if direction == "yes" then
       position = yes_position_offset
@@ -159,4 +159,3 @@ function collect_pass_money()
         dest = dest + STACKING
     end
 end
-
