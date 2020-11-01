@@ -6,23 +6,27 @@ function rotated(v, r)
     return v
 end
 
+
+function relative_to_me(obj, pos)
+   return obj.getPosition() + rotated(pos * obj.getScale(), obj.getRotation())
+end
+
 --[[
 obj is the source of the upCast
 
 dist is the length of the cast, e.g. if you cast in a box shape it's the height of the box
 offset is a vector from the origin
-size is the size. It's a vector that is multiplied by the size
+size is the size. It's a vector that is multiplied by the size of the object itself.
 ]]
 DEBUG = true
 function upCast(obj, dist, offset, size)
     local dist = dist or 1
     local offset = offset or Vector(0, 0, 0)
     local size = size or Vector(1, 1, 0)
-    local oPos = obj.getPosition()
+    
     local oBounds = obj.getBoundsNormalized()
     local oRot = obj.getRotation()
-    offset = rotated(offset, oRot)
-    local orig = Vector(oPos[1],oPos[2],oPos[3]) + offset
+    local orig = relative_to_me(obj, offset)
     local siz = {oBounds.size.x*size[1], dist, oBounds.size.z*size[2]}
     local orient = {oRot[1],oRot[2],oRot[3]}
     local hits = Physics.cast({
