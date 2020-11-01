@@ -1,6 +1,8 @@
 #include kd/util.ttslua
 #include kd/common.ttslua
 
+VOTE_COUNT_PERIOD = 5
+
 voting_area_location = Vector(0, 0, 0.42)
 voting_area_extend = Vector(1, 0.15, 0)
 
@@ -59,7 +61,6 @@ function resolve(_, vote)
     end
 end
 
-
 function count_votes()
    local yes_votes = 0
    local no_votes = 0
@@ -69,6 +70,19 @@ function count_votes()
       yes_votes = yes_votes + voting_state.yes
       no_votes = no_votes + voting_state.no
    end
-   self.UI.setValue("yes_vote_count", "" .. yes_votes)
-   self.UI.setValue("no_vote_count", "" .. no_votes)
+   return { yes_votes=yes_votes, no_votes=no_votes }
+end
+
+function display_vote_count()
+   local vc  = count_votes()
+   self.UI.setValue("yes_vote_count", "" .. vc.yes_votes)
+   self.UI.setValue("no_vote_count", "" .. vc.no_votes)
+end
+
+function onLoad()
+   function periodic_vote_counter()
+      display_vote_count()
+      after(VOTE_COUNT_PERIOD, periodic_vote_counter)
+   end
+   after(VOTE_COUNT_PERIOD, periodic_vote_counter)
 end

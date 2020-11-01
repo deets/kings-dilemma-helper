@@ -47,7 +47,7 @@ function vote(player, direction)
       position = no_position_offset
    end
    move_vote(position)
-   after(1.0, function() get_playingfield().call("count_votes") end)
+   after(1.0, function() get_playingfield().call("display_vote_count") end)
 end
 
 function place_money(offset)
