@@ -1,7 +1,7 @@
 {
   "SaveName": "20201026_KD_game",
   "GameMode": "Custom",
-  "Date": "11/1/2020 1:37:41 PM",
+  "Date": "11/1/2020 6:01:17 PM",
   "Gravity": 0.5,
   "PlayArea": 0.5,
   "GameType": "",
@@ -75,9 +75,9 @@
           "rotX": 0.0,
           "rotY": 179.896912,
           "rotZ": 0.0,
-          "scaleX": 14.4468756,
+          "scaleX": 14.4468508,
           "scaleY": 7.0,
-          "scaleZ": 6.788974
+          "scaleZ": 6.78893661
         }
       },
       {
@@ -89,9 +89,9 @@
           "rotX": 0.0,
           "rotY": 179.896912,
           "rotZ": 0.0,
-          "scaleX": 15.4803886,
+          "scaleX": 15.4803209,
           "scaleY": 7.0,
-          "scaleZ": 5.878806
+          "scaleZ": 5.87876225
         }
       },
       {
@@ -103,9 +103,9 @@
           "rotX": 0.0,
           "rotY": 179.896912,
           "rotZ": 0.0,
-          "scaleX": 15.52356,
+          "scaleX": 15.5234919,
           "scaleY": 7.0,
-          "scaleZ": 5.923947
+          "scaleZ": 5.92391968
         }
       },
       {
@@ -117,9 +117,9 @@
           "rotX": 0.0,
           "rotY": 179.896912,
           "rotZ": 0.0,
-          "scaleX": 15.3092432,
+          "scaleX": 15.3091927,
           "scaleY": 7.0,
-          "scaleZ": 6.963026
+          "scaleZ": 6.96300554
         }
       },
       {
@@ -133,7 +133,7 @@
           "rotZ": 0.0,
           "scaleX": 14.3203249,
           "scaleY": 7.0,
-          "scaleZ": 6.469872
+          "scaleZ": 6.46986437
         }
       }
     ]
@@ -329,9 +329,9 @@
           "Stretch": true
         }
       },
-      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = true\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = false\n--\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nvoting_area_location = Vector(0, 0, 0.42)\nvoting_area_extend = Vector(1, 0.15, 0)\n\nfunction influence_markers_in_voting_area()\n    return refineTableBy(\n        upCast(self, 10, voting_area_location, voting_area_extend),\n        filter_influence_markers\n    )\nend\n\nfunction resolve(_, vote)\n    local ims = influence_markers_in_voting_area()\n    local im_count = sum_value(ims)\n    local pms = get_all_player_mats()\n    local pass_for_power = {}\n    for _, player_mat in pairs(pms) do\n        local g = player_mat.getGUID()\n        if player_mat.call(\"voted_for_power\", {}) then\n            log(g, \"voted for power\")\n            table.insert(pass_for_power, g)\n        end\n    end\n\n    if #pass_for_power > 0 and #ims > 0 then\n        local influence_to_distribute = math.floor((im_count - (im_count % #pass_for_power)) / #pass_for_power)\n        log(#pass_for_power, \"players voting for power: \")\n        log(influence_to_distribute, \"influence per player: \")\n        local current_influence_marker = table.remove(ims, 1)\n        for _, pm_guid in pairs(pass_for_power) do\n            local pillepalle = getObjectFromGUID(pm_guid)\n            local ppos = pillepalle.call(\"influence_placement_position\", { gain=influence_to_distribute }) +  Vector(0, 3, 0)\n            for i=1, influence_to_distribute do\n                if current_influence_marker.getQuantity()  == -1 then\n                    current_influence_marker.setPositionSmooth(ppos, false, false)\n                    -- guard against over-drawing\n                    if #ims > 0 then\n                        current_influence_marker = table.remove(ims, 1)\n                    end\n                else -- we have a stack\n                    local tp = {\n                        position = Vector(ppos),\n                    }\n                    current_influence_marker.takeObject(tp)\n                end\n                ppos = ppos + STACKING\n            end\n        end\n    end\n    -- always collect the money, it could be for power or arbittraion\n    for _, pm in pairs(get_all_player_mats()) do\n        pm.call(\"collect_pass_money\", {})\n    end\n    local cpos = self.getPosition() + rotated(voting_area_location, self.getRotation()) + STACKING\n    for _, thingamabob in pairs(get_all_player_mats()) do\n        cpos = thingamabob.call(\"collect_votes\", { vote=vote, position=cpos  })\n    end\nend",
+      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = false\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n\n\nfunction after(delay, func, ...)\n    local params = {...}\n    function after_routine()\n        if type(delay) == 'function' then\n            repeat coroutine.yield(0) until not delay()\n        else\n            local after_time = os.clock() + delay\n            repeat coroutine.yield(0) until os.clock() >= after_time\n        end\n        func(unpack(params))\n        return 1\n    end\n    startLuaCoroutine(self, 'after_routine')\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = true\n--\nPLAYINGFIELD = \"8b8887\"\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_playingfield()\n   return getObjectFromGUID(PLAYINGFIELD)\nend\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction filter_money_or_influence(o)\n   return filter_money_markers(o) or filter_influence_markers(o)\nend\n\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nVOTE_COUNT_PERIOD = 5\n\nvoting_area_location = Vector(0, 0, 0.42)\nvoting_area_extend = Vector(1, 0.15, 0)\n\nfunction influence_markers_in_voting_area()\n    return refineTableBy(\n        upCast(self, 10, voting_area_location, voting_area_extend),\n        filter_influence_markers\n    )\nend\n\nfunction resolve(_, vote)\n    local ims = influence_markers_in_voting_area()\n    local im_count = sum_value(ims)\n    local pms = get_all_player_mats()\n    local pass_for_power = {}\n    for _, player_mat in pairs(pms) do\n        local g = player_mat.getGUID()\n        if player_mat.call(\"voted_for_power\", {}) then\n            log(g, \"voted for power\")\n            table.insert(pass_for_power, g)\n        end\n    end\n\n    if #pass_for_power > 0 and #ims > 0 then\n        local influence_to_distribute = math.floor((im_count - (im_count % #pass_for_power)) / #pass_for_power)\n        log(#pass_for_power, \"players voting for power: \")\n        log(influence_to_distribute, \"influence per player: \")\n        local current_influence_marker = table.remove(ims, 1)\n        for _, pm_guid in pairs(pass_for_power) do\n            local pillepalle = getObjectFromGUID(pm_guid)\n            local ppos = pillepalle.call(\"influence_placement_position\", { gain=influence_to_distribute }) +  Vector(0, 3, 0)\n            for i=1, influence_to_distribute do\n                if current_influence_marker.getQuantity()  == -1 then\n                    current_influence_marker.setPositionSmooth(ppos, false, false)\n                    -- guard against over-drawing\n                    if #ims > 0 then\n                        current_influence_marker = table.remove(ims, 1)\n                    end\n                else -- we have a stack\n                    local tp = {\n                        position = Vector(ppos),\n                    }\n                    current_influence_marker.takeObject(tp)\n                end\n                ppos = ppos + STACKING\n            end\n        end\n    end\n    -- always collect the money, it could be for power or arbittraion\n    for _, pm in pairs(get_all_player_mats()) do\n        pm.call(\"collect_pass_money\", {})\n    end\n    local cpos = self.getPosition() + rotated(voting_area_location, self.getRotation()) + STACKING\n    for _, thingamabob in pairs(get_all_player_mats()) do\n        cpos = thingamabob.call(\"collect_votes\", { vote=vote, position=cpos  })\n    end\nend\n\nfunction count_votes()\n   local yes_votes = 0\n   local no_votes = 0\n   local pms = get_all_player_mats()\n   for _, player_mat in pairs(pms) do\n      local voting_state = player_mat.call(\"voting_state\", {})\n      yes_votes = yes_votes + voting_state.yes\n      no_votes = no_votes + voting_state.no\n   end\n   return { yes_votes=yes_votes, no_votes=no_votes }\nend\n\nfunction display_vote_count()\n   local vc  = count_votes()\n   self.UI.setValue(\"yes_vote_count\", \"\" .. vc.yes_votes)\n   self.UI.setValue(\"no_vote_count\", \"\" .. vc.no_votes)\nend\n\nfunction onLoad()\n   function periodic_vote_counter()\n      display_vote_count()\n      after(VOTE_COUNT_PERIOD, periodic_vote_counter)\n   end\n   after(VOTE_COUNT_PERIOD, periodic_vote_counter)\nend",
       "LuaScriptState": "",
-      "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"20\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"20\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout scale=\".1\" width=\"400\" height=\"60\" position=\"0 105 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Resolve Vote</Text>\n        <Button onClick=\"resolve(yes)\">Yes</Button>\n        <Button onClick=\"resolve(no)\">No</Button>\n    </HorizontalLayout>\n</VerticalLayout>",
+      "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"60\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"40\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout scale=\".1\" width=\"600\" height=\"200\" position=\"0 120 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Resolve Vote</Text>\n        <Button onClick=\"resolve(yes)\">Yes</Button>\n        <Button onClick=\"resolve(no)\">No</Button>\n    </HorizontalLayout>\n    <HorizontalLayout>\n        <Text>Yes:</Text>\n        <Text id=\"yes_vote_count\">0</Text>\n        <Text>No:</Text>\n        <Text id=\"no_vote_count\">0</Text>\n    </HorizontalLayout>\n\n</VerticalLayout>",
       "GUID": "8b8887"
     },
     {
@@ -379,7 +379,7 @@
           "Stretch": true
         }
       },
-      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = true\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = false\n--\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        position_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        position_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(position),\n                }\n                marker.takeObject(tp)\n                position = position + STACKING\n            end\n        end\n        marker.setPositionSmooth(position)\n        position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(losing_position),\n                }\n                marker.takeObject(tp)\n                losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(losing_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n",
+      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = false\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n\n\nfunction after(delay, func, ...)\n    local params = {...}\n    function after_routine()\n        if type(delay) == 'function' then\n            repeat coroutine.yield(0) until not delay()\n        else\n            local after_time = os.clock() + delay\n            repeat coroutine.yield(0) until os.clock() >= after_time\n        end\n        func(unpack(params))\n        return 1\n    end\n    startLuaCoroutine(self, 'after_routine')\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = true\n--\nPLAYINGFIELD = \"8b8887\"\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_playingfield()\n   return getObjectFromGUID(PLAYINGFIELD)\nend\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction filter_money_or_influence(o)\n   return filter_money_markers(o) or filter_influence_markers(o)\nend\n\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\n   after(1.0, function() get_playingfield().call(\"display_vote_count\") end)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction collect_voting_items(position)\n   local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)\n   local votes = refineTableBy(\n      items,\n      filter_money_or_influence\n   )\n   return votes\nend\n\nfunction count_votes(position)\n   return sum_value(collect_voting_items(position))\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        winning_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        winning_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = collect_voting_items(winning_offset)\n    for _, marker in pairs(ims) do\n       local real_position = position\n       if marker.getName() == \"money\" then\n          real_position = get_money_bag().getPosition() + STACKING * 4\n       end\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             position = position + STACKING\n          end\n       end\n       marker.setPositionSmooth(real_position)\n       position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = collect_voting_items(losing_offset)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n       local real_position = losing_position\n       if marker.getName() == \"money\" then\n          real_position = relative_to_me(self, money_location) + STACKING\n       end\n\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(real_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n\nfunction voting_state()\n   local res = { yes=0, no=0, pass=nil, mat=self.getGUID() }\n\n   if voted_for_power() then\n      res.pass = \"power\"\n   elseif voted_for_arbitration() then\n      res.pass = \"arbitration\"\n   end\n\n   res.yes = count_votes(yes_position_offset)\n   res.no = count_votes(no_position_offset)\n\n   log(res, \"voting state\")\n   return res\nend",
       "LuaScriptState": "",
       "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"20\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"20\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout id=\"container\" scale=\".5\" width=\"380\" height=\"220\" position=\"0 160 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Vote</Text>\n        <Button onClick=\"vote(yes)\">Yes</Button>\n        <Button onClick=\"vote(no)\">No</Button>\n    </HorizontalLayout>\n    <HorizontalLayout >\n        <Text>Pass</Text>\n        <Button onClick=\"pass_for(power)\">Power</Button>\n        <Button onClick=\"pass_for(arbitration)\">Arbitration</Button>\n    </HorizontalLayout>\n</VerticalLayout>",
       "GUID": "644377"
@@ -429,7 +429,7 @@
           "Stretch": true
         }
       },
-      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = true\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = false\n--\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        position_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        position_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(position),\n                }\n                marker.takeObject(tp)\n                position = position + STACKING\n            end\n        end\n        marker.setPositionSmooth(position)\n        position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(losing_position),\n                }\n                marker.takeObject(tp)\n                losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(losing_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n",
+      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = false\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n\n\nfunction after(delay, func, ...)\n    local params = {...}\n    function after_routine()\n        if type(delay) == 'function' then\n            repeat coroutine.yield(0) until not delay()\n        else\n            local after_time = os.clock() + delay\n            repeat coroutine.yield(0) until os.clock() >= after_time\n        end\n        func(unpack(params))\n        return 1\n    end\n    startLuaCoroutine(self, 'after_routine')\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = true\n--\nPLAYINGFIELD = \"8b8887\"\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_playingfield()\n   return getObjectFromGUID(PLAYINGFIELD)\nend\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction filter_money_or_influence(o)\n   return filter_money_markers(o) or filter_influence_markers(o)\nend\n\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\n   after(1.0, function() get_playingfield().call(\"display_vote_count\") end)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction collect_voting_items(position)\n   local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)\n   local votes = refineTableBy(\n      items,\n      filter_money_or_influence\n   )\n   return votes\nend\n\nfunction count_votes(position)\n   return sum_value(collect_voting_items(position))\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        winning_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        winning_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = collect_voting_items(winning_offset)\n    for _, marker in pairs(ims) do\n       local real_position = position\n       if marker.getName() == \"money\" then\n          real_position = get_money_bag().getPosition() + STACKING * 4\n       end\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             position = position + STACKING\n          end\n       end\n       marker.setPositionSmooth(real_position)\n       position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = collect_voting_items(losing_offset)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n       local real_position = losing_position\n       if marker.getName() == \"money\" then\n          real_position = relative_to_me(self, money_location) + STACKING\n       end\n\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(real_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n\nfunction voting_state()\n   local res = { yes=0, no=0, pass=nil, mat=self.getGUID() }\n\n   if voted_for_power() then\n      res.pass = \"power\"\n   elseif voted_for_arbitration() then\n      res.pass = \"arbitration\"\n   end\n\n   res.yes = count_votes(yes_position_offset)\n   res.no = count_votes(no_position_offset)\n\n   log(res, \"voting state\")\n   return res\nend",
       "LuaScriptState": "",
       "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"20\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"20\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout id=\"container\" scale=\".5\" width=\"380\" height=\"220\" position=\"0 160 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Vote</Text>\n        <Button onClick=\"vote(yes)\">Yes</Button>\n        <Button onClick=\"vote(no)\">No</Button>\n    </HorizontalLayout>\n    <HorizontalLayout >\n        <Text>Pass</Text>\n        <Button onClick=\"pass_for(power)\">Power</Button>\n        <Button onClick=\"pass_for(arbitration)\">Arbitration</Button>\n    </HorizontalLayout>\n</VerticalLayout>",
       "GUID": "15a084"
@@ -479,7 +479,7 @@
           "Stretch": true
         }
       },
-      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = true\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = false\n--\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        position_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        position_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(position),\n                }\n                marker.takeObject(tp)\n                position = position + STACKING\n            end\n        end\n        marker.setPositionSmooth(position)\n        position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(losing_position),\n                }\n                marker.takeObject(tp)\n                losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(losing_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n",
+      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = false\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n\n\nfunction after(delay, func, ...)\n    local params = {...}\n    function after_routine()\n        if type(delay) == 'function' then\n            repeat coroutine.yield(0) until not delay()\n        else\n            local after_time = os.clock() + delay\n            repeat coroutine.yield(0) until os.clock() >= after_time\n        end\n        func(unpack(params))\n        return 1\n    end\n    startLuaCoroutine(self, 'after_routine')\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = true\n--\nPLAYINGFIELD = \"8b8887\"\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_playingfield()\n   return getObjectFromGUID(PLAYINGFIELD)\nend\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction filter_money_or_influence(o)\n   return filter_money_markers(o) or filter_influence_markers(o)\nend\n\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\n   after(1.0, function() get_playingfield().call(\"display_vote_count\") end)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction collect_voting_items(position)\n   local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)\n   local votes = refineTableBy(\n      items,\n      filter_money_or_influence\n   )\n   return votes\nend\n\nfunction count_votes(position)\n   return sum_value(collect_voting_items(position))\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        winning_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        winning_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = collect_voting_items(winning_offset)\n    for _, marker in pairs(ims) do\n       local real_position = position\n       if marker.getName() == \"money\" then\n          real_position = get_money_bag().getPosition() + STACKING * 4\n       end\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             position = position + STACKING\n          end\n       end\n       marker.setPositionSmooth(real_position)\n       position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = collect_voting_items(losing_offset)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n       local real_position = losing_position\n       if marker.getName() == \"money\" then\n          real_position = relative_to_me(self, money_location) + STACKING\n       end\n\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(real_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n\nfunction voting_state()\n   local res = { yes=0, no=0, pass=nil, mat=self.getGUID() }\n\n   if voted_for_power() then\n      res.pass = \"power\"\n   elseif voted_for_arbitration() then\n      res.pass = \"arbitration\"\n   end\n\n   res.yes = count_votes(yes_position_offset)\n   res.no = count_votes(no_position_offset)\n\n   log(res, \"voting state\")\n   return res\nend",
       "LuaScriptState": "",
       "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"20\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"20\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout id=\"container\" scale=\".5\" width=\"380\" height=\"220\" position=\"0 160 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Vote</Text>\n        <Button onClick=\"vote(yes)\">Yes</Button>\n        <Button onClick=\"vote(no)\">No</Button>\n    </HorizontalLayout>\n    <HorizontalLayout >\n        <Text>Pass</Text>\n        <Button onClick=\"pass_for(power)\">Power</Button>\n        <Button onClick=\"pass_for(arbitration)\">Arbitration</Button>\n    </HorizontalLayout>\n</VerticalLayout>",
       "GUID": "67a372"
@@ -529,7 +529,7 @@
           "Stretch": true
         }
       },
-      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = true\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = false\n--\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        position_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        position_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(position),\n                }\n                marker.takeObject(tp)\n                position = position + STACKING\n            end\n        end\n        marker.setPositionSmooth(position)\n        position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(losing_position),\n                }\n                marker.takeObject(tp)\n                losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(losing_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n",
+      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = false\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n\n\nfunction after(delay, func, ...)\n    local params = {...}\n    function after_routine()\n        if type(delay) == 'function' then\n            repeat coroutine.yield(0) until not delay()\n        else\n            local after_time = os.clock() + delay\n            repeat coroutine.yield(0) until os.clock() >= after_time\n        end\n        func(unpack(params))\n        return 1\n    end\n    startLuaCoroutine(self, 'after_routine')\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = true\n--\nPLAYINGFIELD = \"8b8887\"\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_playingfield()\n   return getObjectFromGUID(PLAYINGFIELD)\nend\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction filter_money_or_influence(o)\n   return filter_money_markers(o) or filter_influence_markers(o)\nend\n\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\n   after(1.0, function() get_playingfield().call(\"display_vote_count\") end)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction collect_voting_items(position)\n   local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)\n   local votes = refineTableBy(\n      items,\n      filter_money_or_influence\n   )\n   return votes\nend\n\nfunction count_votes(position)\n   return sum_value(collect_voting_items(position))\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        winning_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        winning_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = collect_voting_items(winning_offset)\n    for _, marker in pairs(ims) do\n       local real_position = position\n       if marker.getName() == \"money\" then\n          real_position = get_money_bag().getPosition() + STACKING * 4\n       end\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             position = position + STACKING\n          end\n       end\n       marker.setPositionSmooth(real_position)\n       position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = collect_voting_items(losing_offset)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n       local real_position = losing_position\n       if marker.getName() == \"money\" then\n          real_position = relative_to_me(self, money_location) + STACKING\n       end\n\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(real_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n\nfunction voting_state()\n   local res = { yes=0, no=0, pass=nil, mat=self.getGUID() }\n\n   if voted_for_power() then\n      res.pass = \"power\"\n   elseif voted_for_arbitration() then\n      res.pass = \"arbitration\"\n   end\n\n   res.yes = count_votes(yes_position_offset)\n   res.no = count_votes(no_position_offset)\n\n   log(res, \"voting state\")\n   return res\nend",
       "LuaScriptState": "",
       "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"20\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"20\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout id=\"container\" scale=\".5\" width=\"380\" height=\"220\" position=\"0 160 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Vote</Text>\n        <Button onClick=\"vote(yes)\">Yes</Button>\n        <Button onClick=\"vote(no)\">No</Button>\n    </HorizontalLayout>\n    <HorizontalLayout >\n        <Text>Pass</Text>\n        <Button onClick=\"pass_for(power)\">Power</Button>\n        <Button onClick=\"pass_for(arbitration)\">Arbitration</Button>\n    </HorizontalLayout>\n</VerticalLayout>",
       "GUID": "fc924b"
@@ -579,7 +579,7 @@
           "Stretch": true
         }
       },
-      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = true\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = false\n--\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        position_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        position_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = refineTableBy(upCast(self, 10, position_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(position),\n                }\n                marker.takeObject(tp)\n                position = position + STACKING\n            end\n        end\n        marker.setPositionSmooth(position)\n        position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = refineTableBy(upCast(self, 10, losing_offset * Vector(1, 0, 1), card_size),  filter_influence_markers)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n        if marker.getQuantity() > -1 then\n            for i = 1, marker.getQuantity() do\n                local tp = {\n                    position = Vector(losing_position),\n                }\n                marker.takeObject(tp)\n                losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(losing_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n",
+      "LuaScript": "----#include kd/util.ttslua\n-- This allows us to see the physics casts being performed\nDEBUG_CASTS = false\n\nfunction rotated(v, r)\n   v = Vector(v)\n   v:rotateOver(\"z\", r[3])\n   v:rotateOver(\"x\", r[1])\n   v:rotateOver(\"y\", r[2])\n   return v\nend\n\n\nfunction relative_to_me(obj, pos)\n   return obj.getPosition() + rotated(pos * obj.getBoundsNormalized().size, obj.getRotation())\nend\n\n--[[\nobj is the source of the upCast\n\ndist is the length of the cast, e.g. if you cast in a box shape it's the height of the box\noffset is a vector from the origin\nsize is the size. It's a vector that is multiplied by the size of the object itself.\n]]\nfunction upCast(obj, dist, offset, size)\n    local dist = dist or 1\n    local offset = offset or Vector(0, 0, 0)\n    local size = size or Vector(1, 1, 0)\n\n    local oBounds = obj.getBoundsNormalized().size\n    local oRot = obj.getRotation()\n    local orig = relative_to_me(obj, offset)\n    local siz = {oBounds.x * size[1], dist, oBounds.z * size[2]}\n    local orient = {oRot[1],oRot[2],oRot[3]}\n    local hits = Physics.cast({\n        origin       = orig,\n        direction    = {0,1,0},\n        type         = BOX,\n        size         = siz,\n        orientation  = orient,\n        max_distance = 0,\n        debug        = DEBUG_CASTS,\n    })\n    local hitObjects = {}\n    for i,v in pairs(hits) do\n        if v.hit_object ~= obj then table.insert(hitObjects,v.hit_object) end\n    end\n    return hitObjects\nend\n\nfunction refineTableBy(t, func)\n    if func==nil then error(\"No func supplied to refineTableBy\") end\n    local refinedTable = {}\n    for _, v in ipairs(t) do\n        if func(v) then\n            table.insert(refinedTable, v)\n        end\n    end\n    return refinedTable\nend\n\nfunction starts_with(str, start)\n   return str:sub(1, #start) == start\nend\n\n\nfunction after(delay, func, ...)\n    local params = {...}\n    function after_routine()\n        if type(delay) == 'function' then\n            repeat coroutine.yield(0) until not delay()\n        else\n            local after_time = os.clock() + delay\n            repeat coroutine.yield(0) until os.clock() >= after_time\n        end\n        func(unpack(params))\n        return 1\n    end\n    startLuaCoroutine(self, 'after_routine')\nend\n----#include kd/util.ttslua\n----#include kd/common.ttslua\n-- This toggles the player control hide feature which is great\n-- for the game but annoys when debugging\nHIDE_CONTROLS_FOR_OTHER_PLAYERS = true\n--\nPLAYINGFIELD = \"8b8887\"\nMONEY_BAG = \"c94778\"\nARBITRATION_HAMMER = \"6aa521\"\nBOX = 3\nPLAYER_MAT_NAME = \"player mat\"\nSTACKING = Vector(0, 1.2, 0)\n\nfunction get_playingfield()\n   return getObjectFromGUID(PLAYINGFIELD)\nend\n\nfunction get_money_bag()\n   return getObjectFromGUID(MONEY_BAG)\nend\n\nfunction get_arbitration_hammer()\n    return getObjectFromGUID(ARBITRATION_HAMMER)\nend\n\nfunction can_pass_for_arbitration()\n    local hammer = get_arbitration_hammer()\n    local money = refineTableBy(upCast(hammer, 5), filter_money_markers)\n    return #money == 0\nend\n\nfunction sum_value(all_marker_objects)\n    local total = 0\n    for _, im in ipairs(all_marker_objects) do\n        local q = im.getQuantity()\n        if q == -1 then\n            q = 1\n        end\n        total = total + q\n    end\n    return total\nend\n\nfunction filter_influence_markers(o)\n    return starts_with(o.name, \"Custom_Token\") and o.getName() == \"influence-marker\"\nend\n\nfunction filter_money_markers(o)\n    return o.getName() == \"money\"\nend\n\nfunction filter_money_or_influence(o)\n   return filter_money_markers(o) or filter_influence_markers(o)\nend\n\n\nfunction get_all_player_mats()\n    local res = {}\n    for _, v in ipairs(getAllObjects()) do\n        if v.getName() == PLAYER_MAT_NAME then\n            table.insert(res, v)\n        end\n    end\n    return res\nend\n----#include kd/common.ttslua\n\nhouse_name = nil\nmy_player = nil\n\nsecret_area_position = Vector(0, 0, 0.22)\nsecret_area_size = Vector(1.0, 0.5, 0)\ninfluence_marker_location = Vector(0.325, 0, 0.16)\nmoney_location = Vector(-0.325, 0, 0.16)\n\nyes_position_offset = Vector(0.325, 3, -0.325)\nno_position_offset = Vector(-0.325, 3, -0.325)\npass_position_offset = Vector(0, 3, -0.25)\nhammer_location = pass_position_offset + Vector(0, 3, -0.43)\ncard_size = Vector(0.3, 0.45, 0)\nplacement_offset_position = Vector(0, 3, 0)\n\nfunction set_player_visibility(player)\n   if HIDE_CONTROLS_FOR_OTHER_PLAYERS then\n      self.UI.setAttribute(\"container\", \"visibility\", player.color)\n   end\nend\n\nfunction move_vote(position_offset)\n    local ims = refineTableBy(upCast(self, 10, secret_area_position, secret_area_size),  filter_influence_markers)\n    local position = relative_to_me(self, position_offset)\n    for _, v in ipairs(ims) do\n        local takeParams = {\n            position = position\n        }\n        local taken = v.takeObject(takeParams)\n        if taken == nil then\n            -- we did not take so it was not a stack. Move the object instead\n            v.setPositionSmooth(position, false, false)\n        end\n        break\n    end\nend\n\nfunction vote(player, direction)\n   set_player_visibility(player)\n   local position = nil\n   if direction == \"yes\" then\n      position = yes_position_offset\n   elseif direction == \"no\" then\n      position = no_position_offset\n   end\n   move_vote(position)\n   after(1.0, function() get_playingfield().call(\"display_vote_count\") end)\nend\n\nfunction place_money(offset)\n    local position = relative_to_me(self, offset)\n    local money_bag = get_money_bag()\n    local takeParams = {\n        position = position\n    }\n    local taken = money_bag.takeObject(takeParams)\nend\n\nfunction pass_for(player, kind)\n    set_player_visibility(player)\n    if voted_for_power() or voted_for_arbitration() then\n        return\n    end\n    if kind == \"power\" then\n       place_money(pass_position_offset)\n    elseif kind == \"arbitration\" then\n       if can_pass_for_arbitration() and not voted_for_power() then\n          local hammer = get_arbitration_hammer()\n          hammer.setPositionSmooth(relative_to_me(self, hammer_location))\n          place_money(hammer_location + STACKING)\n       end\n    end\nend\n\n\nfunction voted_for_arbitration()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2.3 * Vector(1, 0, 1), card_size * 0.7),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction voted_for_power()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * Vector(1, 0, 1), card_size),  filter_money_markers)\n    if sum_value(money) > 0 then\n        return true\n    else\n        return false\n    end\nend\n\nfunction collect_voting_items(position)\n   local items = upCast(self, 10, position * Vector(1, 0, 1), card_size)\n   local votes = refineTableBy(\n      items,\n      filter_money_or_influence\n   )\n   return votes\nend\n\nfunction count_votes(position)\n   return sum_value(collect_voting_items(position))\nend\n\n\nfunction collect_votes(params)\n    local vote = params.vote\n    local position = params.position\n    local position_offset = nil\n    local losing_offset = nil\n    if vote == \"yes\" then\n        winning_offset = yes_position_offset\n        losing_offset = no_position_offset\n    else\n        winning_offset = no_position_offset\n        losing_offset = yes_position_offset\n    end\n    -- transfer our winning influence markers\n    local ims = collect_voting_items(winning_offset)\n    for _, marker in pairs(ims) do\n       local real_position = position\n       if marker.getName() == \"money\" then\n          real_position = get_money_bag().getPosition() + STACKING * 4\n       end\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             position = position + STACKING\n          end\n       end\n       marker.setPositionSmooth(real_position)\n       position = position + STACKING\n    end\n\n    -- transfer the losing markers back into the stash\n    ims = collect_voting_items(losing_offset)\n    local losing_position = relative_to_me(self, influence_marker_location) + STACKING\n    for _, marker in pairs(ims) do\n       local real_position = losing_position\n       if marker.getName() == \"money\" then\n          real_position = relative_to_me(self, money_location) + STACKING\n       end\n\n       if marker.getQuantity() > -1 then\n          for i = 1, marker.getQuantity() do\n             local tp = {\n                position = Vector(real_position),\n             }\n             marker.takeObject(tp)\n             real_position = real_position + STACKING\n             losing_position = losing_position + STACKING\n            end\n        end\n        marker.setPositionSmooth(real_position)\n        losing_position = losing_position + STACKING\n    end\n    return position\nend\n\nfunction influence_placement_position(params)\n    local ims_count = sum_value(refineTableBy(upCast(self, 10, secret_area_position * Vector(1, 0, 1), secret_area_size),  filter_influence_markers))\n    local total = ims_count + params.gain\n    if my_player then\n        my_player.broadcast(\"You should have \" .. total .. \" influence\")\n    end\n    return relative_to_me(self, influence_marker_location)\nend\n\nfunction collect_pass_money()\n    local money = refineTableBy(upCast(self, 10, pass_position_offset * 2 * Vector(1, 0, 1), card_size * 2),  filter_money_markers)\n    log(#money, \"collect_pass_money\")\n    local dest = relative_to_me(self, money_location) + STACKING\n    for _, coin in pairs(money) do\n        coin.setPositionSmooth(dest)\n        dest = dest + STACKING\n    end\nend\n\nfunction voting_state()\n   local res = { yes=0, no=0, pass=nil, mat=self.getGUID() }\n\n   if voted_for_power() then\n      res.pass = \"power\"\n   elseif voted_for_arbitration() then\n      res.pass = \"arbitration\"\n   end\n\n   res.yes = count_votes(yes_position_offset)\n   res.no = count_votes(no_position_offset)\n\n   log(res, \"voting state\")\n   return res\nend",
       "LuaScriptState": "",
       "XmlUI": "<Defaults>\n    <Text color=\"#DDDDDD\" fontSize=\"20\" alignment=\"MiddleLeft\"/>\n    <Button fontSize=\"20\" textOutline=\"#ffffff\"/>\n</Defaults>\n\n<VerticalLayout id=\"container\" scale=\".5\" width=\"380\" height=\"220\" position=\"0 160 -22\" rotation=\"0 0 180\">\n    <HorizontalLayout>\n        <Text>Vote</Text>\n        <Button onClick=\"vote(yes)\">Yes</Button>\n        <Button onClick=\"vote(no)\">No</Button>\n    </HorizontalLayout>\n    <HorizontalLayout >\n        <Text>Pass</Text>\n        <Button onClick=\"pass_for(power)\">Power</Button>\n        <Button onClick=\"pass_for(arbitration)\">Arbitration</Button>\n    </HorizontalLayout>\n</VerticalLayout>",
       "GUID": "051260"
@@ -588,11 +588,11 @@
       "Name": "Infinite_Bag",
       "Transform": {
         "posX": 40.1679535,
-        "posY": 0.9294002,
+        "posY": 0.9294001,
         "posZ": -1.84693551,
-        "rotX": -5.33820469E-07,
-        "rotY": -5.343697E-06,
-        "rotZ": 1.009481E-06,
+        "rotX": -6.927012E-07,
+        "rotY": -5.34912624E-06,
+        "rotZ": 3.15460881E-07,
         "scaleX": 1.79999936,
         "scaleY": 1.79999936,
         "scaleZ": 1.79999936
@@ -601,9 +601,9 @@
       "Description": "",
       "GMNotes": "",
       "ColorDiffuse": {
-        "r": 0.290195853,
-        "g": 0.290195853,
-        "b": 0.290195853
+        "r": 0.2901958,
+        "g": 0.2901958,
+        "b": 0.2901958
       },
       "Locked": false,
       "Grid": true,
@@ -668,11 +668,11 @@
       "Name": "Infinite_Bag",
       "Transform": {
         "posX": 40.5593262,
-        "posY": 0.9311,
+        "posY": 0.93110013,
         "posZ": 2.87610435,
-        "rotX": 1.13346355E-08,
+        "rotX": -1.28262911E-07,
         "rotY": 180.0,
-        "rotZ": 6.074615E-08,
+        "rotZ": -2.95132338E-07,
         "scaleX": 1.69999945,
         "scaleY": 1.69999945,
         "scaleZ": 1.69999945
@@ -683,7 +683,7 @@
       "ColorDiffuse": {
         "r": 0.901960731,
         "g": 0.7136691,
-        "b": 0.168627262
+        "b": 0.1686272
       },
       "Locked": false,
       "Grid": true,
@@ -962,10 +962,10 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -19.0438957,
+        "posX": -23.1330528,
         "posY": 1.16000009,
-        "posZ": 0.07033696,
-        "rotX": 2.820649E-06,
+        "posZ": -0.679844141,
+        "rotX": -2.42539414E-07,
         "rotY": 180.0,
         "rotZ": 180.0,
         "scaleX": 0.646238863,
@@ -1012,10 +1012,10 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -19.0347424,
-        "posY": 1.16000009,
-        "posZ": 7.78005743,
-        "rotX": 2.50830976E-06,
+        "posX": -23.1239,
+        "posY": 1.16,
+        "posZ": 7.029878,
+        "rotX": -9.791752E-06,
         "rotY": 180.0,
         "rotZ": 180.0,
         "scaleX": 0.646238863,
@@ -1062,10 +1062,10 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -19.0771465,
+        "posX": -23.1663036,
         "posY": 1.16000009,
-        "posZ": 1.96792448,
-        "rotX": -5.24308462E-06,
+        "posZ": 1.21774507,
+        "rotX": -4.254567E-06,
         "rotY": 180.0,
         "rotZ": 180.0,
         "scaleX": 0.646238863,
@@ -1112,12 +1112,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": 3.43559432,
-        "posY": 1.15984023,
-        "posZ": 6.381206,
-        "rotX": -0.000898479,
-        "rotY": 209.999924,
-        "rotZ": -0.000590078242,
+        "posX": 3.435595,
+        "posY": 1.15984011,
+        "posZ": 6.381207,
+        "rotX": -0.000898275059,
+        "rotY": 209.9999,
+        "rotZ": -0.000589538249,
         "scaleX": 0.430228531,
         "scaleY": 1.0,
         "scaleZ": 0.430228531
@@ -1162,12 +1162,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -20.7083664,
+        "posX": -24.7975235,
         "posY": 0.960000157,
-        "posZ": 2.00262618,
-        "rotX": -2.44771786E-06,
-        "rotY": 179.992157,
-        "rotZ": 2.9138464E-06,
+        "posZ": 1.25244689,
+        "rotX": -1.82167219E-06,
+        "rotY": 179.992142,
+        "rotZ": -4.27807436E-06,
         "scaleX": 0.646238863,
         "scaleY": 1.0,
         "scaleZ": 0.646238863
@@ -1213,11 +1213,11 @@
       "Name": "Custom_Token",
       "Transform": {
         "posX": -33.40546,
-        "posY": 1.05999982,
+        "posY": 1.06,
         "posZ": -6.663357,
-        "rotX": -3.65568167E-06,
+        "rotX": 3.92612856E-06,
         "rotY": 270.0,
-        "rotZ": 2.8985508E-07,
+        "rotZ": 3.625559E-07,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -1315,9 +1315,9 @@
         "posX": 5.10542059,
         "posY": 0.9599991,
         "posZ": 11.8200178,
-        "rotX": 2.95722043E-06,
+        "rotX": -1.857901E-07,
         "rotY": 179.978134,
-        "rotZ": -1.41473447E-05,
+        "rotZ": -3.98213251E-06,
         "scaleX": 0.9925453,
         "scaleY": 1.0,
         "scaleZ": 0.9925453
@@ -1364,11 +1364,11 @@
       "Name": "Custom_Tile",
       "Transform": {
         "posX": 1.60036767,
-        "posY": 0.960000157,
+        "posY": 0.9599998,
         "posZ": 11.670825,
-        "rotX": -1.51136965E-05,
-        "rotY": 0.0114308316,
-        "rotZ": 1.54175314E-06,
+        "rotX": -1.98354587E-06,
+        "rotY": 0.0114401048,
+        "rotZ": -5.536713E-06,
         "scaleX": 0.9925453,
         "scaleY": 1.0,
         "scaleZ": 0.9925453
@@ -1414,11 +1414,11 @@
       "Name": "CardCustom",
       "Transform": {
         "posX": 46.9291573,
-        "posY": 0.97484225,
-        "posZ": -18.9893131,
-        "rotX": -0.000144002421,
-        "rotY": 269.991516,
-        "rotZ": 0.000742411765,
+        "posY": 0.974844038,
+        "posZ": -18.9893112,
+        "rotX": -0.00015604042,
+        "rotY": 269.991577,
+        "rotZ": 0.000811217236,
         "scaleX": 0.8532884,
         "scaleY": 1.0,
         "scaleZ": 0.8532884
@@ -1617,12 +1617,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 23.4502125,
-        "posY": 1.18277192,
-        "posZ": 3.80086565,
-        "rotX": 7.113673,
-        "rotY": 179.978424,
-        "rotZ": 1.45679251E-05,
+        "posX": 23.45022,
+        "posY": 1.18277276,
+        "posZ": 3.80086517,
+        "rotX": 7.113732,
+        "rotY": 179.97879,
+        "rotZ": 2.28211E-05,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -1667,11 +1667,11 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 23.1826687,
-        "posY": 1.06000245,
-        "posZ": 5.44484568,
-        "rotX": -0.0001214302,
-        "rotY": 180.0244,
+        "posX": 23.1826725,
+        "posY": 1.0600028,
+        "posZ": 5.44484663,
+        "rotX": -0.000113979579,
+        "rotY": 180.024246,
         "rotZ": 179.999863,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
@@ -1717,11 +1717,11 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 23.4445972,
-        "posY": 1.173181,
-        "posZ": -1.025467,
-        "rotX": 6.65947628,
-        "rotY": 179.9793,
+        "posX": 23.4446011,
+        "posY": 1.1731813,
+        "posZ": -1.02546883,
+        "rotX": 6.659511,
+        "rotY": 179.979492,
         "rotZ": 179.999908,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
@@ -1767,11 +1767,11 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 23.3657074,
-        "posY": 1.060001,
-        "posZ": 0.718099236,
-        "rotX": -6.25607063E-05,
-        "rotY": 180.011612,
+        "posX": 23.3657112,
+        "posY": 1.06000125,
+        "posZ": 0.7180998,
+        "rotX": -5.241859E-05,
+        "rotY": 180.011475,
         "rotZ": 179.999985,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
@@ -1817,12 +1817,12 @@
     {
       "Name": "CardCustom",
       "Transform": {
-        "posX": 46.7229233,
-        "posY": 0.990895867,
-        "posZ": -16.0433788,
-        "rotX": 0.051096864,
-        "rotY": 269.986725,
-        "rotZ": 359.5265,
+        "posX": 46.7229347,
+        "posY": 0.990962267,
+        "posZ": -16.0433655,
+        "rotX": 0.02628804,
+        "rotY": 269.9868,
+        "rotZ": 359.5064,
         "scaleX": 0.8532884,
         "scaleY": 1.0,
         "scaleZ": 0.8532884
@@ -1918,12 +1918,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 25.9646721,
-        "posY": 1.06008124,
-        "posZ": 5.56211758,
-        "rotX": 0.00237840344,
-        "rotY": 179.985443,
-        "rotZ": 179.99614,
+        "posX": 25.9646244,
+        "posY": 1.0601052,
+        "posZ": 5.56201363,
+        "rotX": 0.00206564832,
+        "rotY": 179.988235,
+        "rotZ": 179.994766,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -1971,9 +1971,9 @@
         "posX": 26.2427845,
         "posY": 1.06000006,
         "posZ": 3.02766681,
-        "rotX": 1.71205826E-07,
+        "rotX": 3.043237E-07,
         "rotY": 180.0,
-        "rotZ": 6.50587E-08,
+        "rotZ": 6.181584E-08,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -2018,12 +2018,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 25.1794472,
-        "posY": 1.19629157,
-        "posZ": 6.962352,
-        "rotX": 351.987518,
-        "rotY": 180.007034,
-        "rotZ": 359.969421,
+        "posX": 25.1794033,
+        "posY": 1.19625664,
+        "posZ": 6.96240425,
+        "rotX": 351.994,
+        "rotY": 180.009674,
+        "rotZ": 359.9655,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -2071,7 +2071,7 @@
         "posX": 25.6992321,
         "posY": 1.06000006,
         "posZ": -2.95380616,
-        "rotX": -1.06719106E-07,
+        "rotX": -1.2351282E-07,
         "rotY": 180.016418,
         "rotZ": 180.0,
         "scaleX": 0.527460754,
@@ -2119,11 +2119,11 @@
       "Name": "CardCustom",
       "Transform": {
         "posX": 45.6935234,
-        "posY": 1.02824247,
-        "posZ": -17.37835,
-        "rotX": 359.951447,
-        "rotY": 90.036,
-        "rotZ": 0.471093833,
+        "posY": 1.02823722,
+        "posZ": -17.3783188,
+        "rotX": 359.95517,
+        "rotY": 90.03633,
+        "rotZ": 0.476426572,
         "scaleX": 0.8532884,
         "scaleY": 1.0,
         "scaleZ": 0.8532884
@@ -2169,12 +2169,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 26.4020863,
-        "posY": 1.20887125,
-        "posZ": -0.752080441,
-        "rotX": 8.560306,
-        "rotY": 180.017746,
-        "rotZ": -1.59425035E-05,
+        "posX": 26.402092,
+        "posY": 1.20887113,
+        "posZ": -0.752084553,
+        "rotX": 8.560298,
+        "rotY": 180.018066,
+        "rotZ": 2.823098E-06,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -2319,12 +2319,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 26.86376,
-        "posY": 1.06004024,
-        "posZ": 0.555665,
-        "rotX": 0.000369686342,
-        "rotY": 180.025131,
-        "rotZ": 179.998428,
+        "posX": 26.8637714,
+        "posY": 1.06003928,
+        "posZ": 0.555673659,
+        "rotX": 0.000370157533,
+        "rotY": 180.024643,
+        "rotZ": 179.998459,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -2372,9 +2372,9 @@
         "posX": 25.38488,
         "posY": 1.17360568,
         "posZ": -17.5583134,
-        "rotX": -5.40666072E-08,
+        "rotX": -5.40666321E-08,
         "rotY": 270.0,
-        "rotZ": 7.38898442E-10,
+        "rotZ": 7.388952E-10,
         "scaleX": 0.8532884,
         "scaleY": 1.0,
         "scaleZ": 0.8532884
@@ -2627,9 +2627,9 @@
         "posX": 34.1416969,
         "posY": 1.17360592,
         "posZ": 16.5790215,
-        "rotX": -3.32501259E-06,
+        "rotX": -3.32501281E-06,
         "rotY": 269.98764,
-        "rotZ": -2.16398917E-06,
+        "rotZ": -2.163989E-06,
         "scaleX": 0.8532884,
         "scaleY": 1.0,
         "scaleZ": 0.8532884
@@ -2675,12 +2675,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 25.45155,
-        "posY": 1.47281551,
-        "posZ": 5.736874,
-        "rotX": 13.0602674,
-        "rotY": 179.976654,
-        "rotZ": 179.968521,
+        "posX": 25.4514256,
+        "posY": 1.47272229,
+        "posZ": 5.73685741,
+        "rotX": 13.053833,
+        "rotY": 179.977783,
+        "rotZ": 179.96315,
         "scaleX": 0.527460754,
         "scaleY": 1.0,
         "scaleZ": 0.527460754
@@ -2881,9 +2881,9 @@
         "posX": 47.2270927,
         "posY": 1.06121778,
         "posZ": -11.8557444,
-        "rotX": -1.00844054E-05,
+        "rotX": 1.59307365E-06,
         "rotY": 180.027115,
-        "rotZ": -4.65193324E-07,
+        "rotZ": -1.11575991E-06,
         "scaleX": 0.400256664,
         "scaleY": 1.0,
         "scaleZ": 0.400256664
@@ -3074,7 +3074,7 @@
         "r": 0.856,
         "g": 0.09999997,
         "b": 0.09399996,
-        "a": 0.75
+        "a": 0.25
       },
       "Locked": true,
       "Grid": true,
@@ -3117,7 +3117,7 @@
         "r": 0.191999972,
         "g": 0.701,
         "b": 0.167999953,
-        "a": 0.25
+        "a": 0.75
       },
       "Locked": true,
       "Grid": true,
@@ -3146,9 +3146,9 @@
         "posX": -2.490704,
         "posY": 0.9736049,
         "posZ": -16.2877159,
-        "rotX": 6.787567E-08,
+        "rotX": 1.08453344E-08,
         "rotY": 180.000015,
-        "rotZ": -1.4333682E-07,
+        "rotZ": 2.846281E-09,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -3197,9 +3197,9 @@
         "posX": 0.831409454,
         "posY": 0.9736049,
         "posZ": -16.146452,
-        "rotX": -7.02433933E-09,
+        "rotX": 5.73923771E-08,
         "rotY": 180.000015,
-        "rotZ": 2.40250078E-08,
+        "rotZ": 6.99604641E-08,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -3248,9 +3248,9 @@
         "posX": 3.35859776,
         "posY": 0.9736049,
         "posZ": -16.2313271,
-        "rotX": -6.04694428E-09,
+        "rotX": -1.64651546E-08,
         "rotY": 180.0,
-        "rotZ": 3.09493871E-08,
+        "rotZ": -1.13414536E-07,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -3299,9 +3299,9 @@
         "posX": 6.326097,
         "posY": 0.9736049,
         "posZ": -16.3721619,
-        "rotX": -6.244744E-08,
+        "rotX": -9.52934656E-08,
         "rotY": 180.0,
-        "rotZ": 5.65594682E-08,
+        "rotZ": -5.357719E-08,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -3350,9 +3350,9 @@
         "posX": 10.1651611,
         "posY": 0.9736049,
         "posZ": -16.7084522,
-        "rotX": 6.0869084E-08,
+        "rotX": 6.14542E-08,
         "rotY": 180.000015,
-        "rotZ": 1.44566386E-07,
+        "rotZ": 1.94233579E-07,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -3401,9 +3401,9 @@
         "posX": 13.4789085,
         "posY": 0.9736049,
         "posZ": -17.6425781,
-        "rotX": 1.8942794E-08,
+        "rotX": 4.356445E-08,
         "rotY": 180.0,
-        "rotZ": 1.66892349E-08,
+        "rotZ": 1.38302907E-08,
         "scaleX": 1.0,
         "scaleY": 1.0,
         "scaleZ": 1.0
@@ -3449,12 +3449,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 3.370144,
-        "posY": 1.25998342,
-        "posZ": -1.27467453,
-        "rotX": 0.00107116729,
-        "rotY": 0.000118141958,
-        "rotZ": 0.000109843815,
+        "posX": 3.37014484,
+        "posY": 1.25998354,
+        "posZ": -1.2746743,
+        "rotX": 0.00109120563,
+        "rotY": 0.000120169512,
+        "rotZ": 9.121215E-05,
         "scaleX": 0.334664166,
         "scaleY": 1.0,
         "scaleZ": 0.334664166
@@ -3651,12 +3651,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 3.384165,
-        "posY": 1.25995767,
-        "posZ": 0.119234815,
-        "rotX": 0.0009980159,
-        "rotY": 2.27190358E-05,
-        "rotZ": 7.529805E-05,
+        "posX": 3.384146,
+        "posY": 1.25995791,
+        "posZ": 0.11923635,
+        "rotX": 0.00108124421,
+        "rotY": -4.41419033E-05,
+        "rotZ": 9.092037E-05,
         "scaleX": 0.351015449,
         "scaleY": 1.0,
         "scaleZ": 0.351015449
@@ -3853,12 +3853,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 3.25910187,
-        "posY": 1.25993276,
-        "posZ": 1.43496132,
-        "rotX": 0.00107992627,
-        "rotY": -0.0003161092,
-        "rotZ": 5.56856467E-05,
+        "posX": 3.25910282,
+        "posY": 1.25993264,
+        "posZ": 1.43496144,
+        "rotX": 0.00105968269,
+        "rotY": -0.000316962949,
+        "rotZ": 5.519271E-05,
         "scaleX": 0.351423174,
         "scaleY": 1.0,
         "scaleZ": 0.351423174
@@ -4055,12 +4055,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 3.30050039,
-        "posY": 1.2599088,
-        "posZ": 2.72218919,
-        "rotX": 0.00107997318,
-        "rotY": -0.0002395895,
-        "rotZ": 7.051089E-05,
+        "posX": 3.300494,
+        "posY": 1.25990891,
+        "posZ": 2.72218943,
+        "rotX": 0.00106110866,
+        "rotY": -0.000265202834,
+        "rotZ": 6.247841E-05,
         "scaleX": 0.3505926,
         "scaleY": 1.0,
         "scaleZ": 0.3505926
@@ -4257,12 +4257,12 @@
     {
       "Name": "Custom_Token",
       "Transform": {
-        "posX": 3.35430717,
-        "posY": 1.25988078,
-        "posZ": 4.214712,
-        "rotX": 0.00107671728,
-        "rotY": -3.308307E-05,
-        "rotZ": 7.027943E-05,
+        "posX": 3.354317,
+        "posY": 1.25988066,
+        "posZ": 4.214713,
+        "rotX": 0.00105656846,
+        "rotY": -3.69252375E-05,
+        "rotZ": 5.11249527E-05,
         "scaleX": 0.350154251,
         "scaleY": 1.0,
         "scaleZ": 0.350154251
@@ -4459,12 +4459,12 @@
     {
       "Name": "Custom_Token_Stack",
       "Transform": {
-        "posX": 39.6671562,
-        "posY": 1.26000583,
-        "posZ": 21.10516,
-        "rotX": -0.0009989772,
-        "rotY": 0.0152210882,
-        "rotZ": -0.00129484537,
+        "posX": -13.9730034,
+        "posY": 1.25992739,
+        "posZ": 0.728915453,
+        "rotX": 0.00106500671,
+        "rotY": 0.000143434343,
+        "rotZ": 3.98593475E-05,
         "scaleX": 0.400256664,
         "scaleY": 1.0,
         "scaleZ": 0.400256664
@@ -4491,110 +4491,7 @@
       "Hands": false,
       "MaterialIndex": -1,
       "MeshIndex": -1,
-      "Number": 2,
-      "CustomImage": {
-        "ImageURL": "http://cloud-3.steamusercontent.com/ugc/1691624729498350665/11D99E52457DD6A024BFC2886E407A195867B200/",
-        "ImageSecondaryURL": "",
-        "ImageScalar": 1.0,
-        "WidthScale": 0.0,
-        "CustomToken": {
-          "Thickness": 0.2,
-          "MergeDistancePixels": 15.0,
-          "StandUp": false,
-          "Stackable": true
-        }
-      },
-      "LuaScript": "",
-      "LuaScriptState": "",
-      "XmlUI": "",
-      "GUID": "74ce50"
-    },
-    {
-      "Name": "Custom_Token",
-      "Transform": {
-        "posX": 40.3475761,
-        "posY": 1.40596461,
-        "posZ": 21.37657,
-        "rotX": 3.17905116,
-        "rotY": 358.91864,
-        "rotZ": 343.700836,
-        "scaleX": 0.400256664,
-        "scaleY": 1.0,
-        "scaleZ": 0.400256664
-      },
-      "Nickname": "influence-marker",
-      "Description": "",
-      "GMNotes": "",
-      "ColorDiffuse": {
-        "r": 1.0,
-        "g": 1.0,
-        "b": 1.0
-      },
-      "Locked": false,
-      "Grid": true,
-      "Snap": true,
-      "IgnoreFoW": false,
-      "MeasureMovement": false,
-      "DragSelectable": true,
-      "Autoraise": true,
-      "Sticky": true,
-      "Tooltip": true,
-      "GridProjection": false,
-      "HideWhenFaceDown": false,
-      "Hands": false,
-      "CustomImage": {
-        "ImageURL": "http://cloud-3.steamusercontent.com/ugc/1691624729498350665/11D99E52457DD6A024BFC2886E407A195867B200/",
-        "ImageSecondaryURL": "",
-        "ImageScalar": 1.0,
-        "WidthScale": 0.0,
-        "CustomToken": {
-          "Thickness": 0.2,
-          "MergeDistancePixels": 15.0,
-          "StandUp": false,
-          "Stackable": true
-        }
-      },
-      "LuaScript": "",
-      "LuaScriptState": "",
-      "XmlUI": "",
-      "GUID": "8f387e"
-    },
-    {
-      "Name": "Custom_Token_Stack",
-      "Transform": {
-        "posX": -13.973,
-        "posY": 1.25992727,
-        "posZ": 0.7289153,
-        "rotX": 0.001059781,
-        "rotY": 0.000221981434,
-        "rotZ": 3.22666747E-05,
-        "scaleX": 0.400256664,
-        "scaleY": 1.0,
-        "scaleZ": 0.400256664
-      },
-      "Nickname": "influence-marker",
-      "Description": "",
-      "GMNotes": "",
-      "ColorDiffuse": {
-        "r": 1.0,
-        "g": 1.0,
-        "b": 1.0
-      },
-      "Locked": false,
-      "Grid": true,
-      "Snap": true,
-      "IgnoreFoW": false,
-      "MeasureMovement": false,
-      "DragSelectable": true,
-      "Autoraise": true,
-      "Sticky": true,
-      "Tooltip": true,
-      "GridProjection": false,
-      "HideWhenFaceDown": false,
-      "Hands": false,
-      "MaterialIndex": -1,
-      "MeshIndex": -1,
-      "Number": 2,
+      "Number": 0,
       "CustomImage": {
         "ImageURL": "http://cloud-3.steamusercontent.com/ugc/1691624729498350665/11D99E52457DD6A024BFC2886E407A195867B200/",
         "ImageSecondaryURL": "",
@@ -4613,51 +4510,13 @@
       "GUID": "a5c8b9"
     },
     {
-      "Name": "Checker_white",
-      "Transform": {
-        "posX": 37.1478729,
-        "posY": 1.18721044,
-        "posZ": 16.3856754,
-        "rotX": 2.39960923E-06,
-        "rotY": 1.17105355E-05,
-        "rotZ": -3.39764529E-06,
-        "scaleX": 1.0,
-        "scaleY": 1.0,
-        "scaleZ": 1.0
-      },
-      "Nickname": "money",
-      "Description": "",
-      "GMNotes": "",
-      "ColorDiffuse": {
-        "r": 1.0,
-        "g": 1.0,
-        "b": 1.0
-      },
-      "Locked": false,
-      "Grid": true,
-      "Snap": true,
-      "IgnoreFoW": false,
-      "MeasureMovement": false,
-      "DragSelectable": true,
-      "Autoraise": true,
-      "Sticky": true,
-      "Tooltip": true,
-      "GridProjection": false,
-      "HideWhenFaceDown": false,
-      "Hands": false,
-      "LuaScript": "",
-      "LuaScriptState": "",
-      "XmlUI": "",
-      "GUID": "87367e"
-    },
-    {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -19.0996017,
-        "posY": 1.16000009,
-        "posZ": 5.84122944,
-        "rotX": -1.25983379E-05,
-        "rotY": 105.001648,
+        "posX": -23.1887589,
+        "posY": 1.16,
+        "posZ": 5.09105,
+        "rotX": 7.1243694E-06,
+        "rotY": 105.001633,
         "rotZ": 180.0,
         "scaleX": 0.646238863,
         "scaleY": 1.0,
@@ -4703,12 +4562,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -20.89051,
-        "posY": 0.960000157,
-        "posZ": 5.998151,
-        "rotX": 5.816009E-06,
-        "rotY": 105.001381,
-        "rotZ": -3.98140128E-06,
+        "posX": -24.9796677,
+        "posY": 0.959999442,
+        "posZ": 5.24797153,
+        "rotX": -1.12077523E-05,
+        "rotY": 105.001373,
+        "rotZ": 8.760218E-06,
         "scaleX": 0.646238863,
         "scaleY": 1.0,
         "scaleZ": 0.646238863
@@ -4753,12 +4612,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -20.7735653,
-        "posY": 0.96,
-        "posZ": 7.91159534,
-        "rotX": 4.909179E-07,
+        "posX": -24.8627224,
+        "posY": 0.9600002,
+        "posZ": 7.16141653,
+        "rotX": 1.53229576E-05,
         "rotY": 180.0,
-        "rotZ": 1.810154E-07,
+        "rotZ": -6.71379576E-06,
         "scaleX": 0.646238863,
         "scaleY": 1.0,
         "scaleZ": 0.646238863
@@ -4803,10 +4662,10 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -19.06927,
-        "posY": 1.16000009,
-        "posZ": 3.71538329,
-        "rotX": -8.146065E-06,
+        "posX": -23.1584263,
+        "posY": 1.16,
+        "posZ": 2.965204,
+        "rotX": -2.01293756E-06,
         "rotY": 180.000824,
         "rotZ": 180.0,
         "scaleX": 0.628697336,
@@ -4853,12 +4712,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -20.8920288,
+        "posX": -24.9811859,
         "posY": 0.960000157,
-        "posZ": 4.055168,
-        "rotX": 4.564412E-07,
+        "posZ": 3.30498862,
+        "rotX": 2.997441E-07,
         "rotY": 180.0,
-        "rotZ": 4.26551765E-07,
+        "rotZ": 3.643513E-07,
         "scaleX": 0.628697336,
         "scaleY": 1.0,
         "scaleZ": 0.628697336
@@ -4903,12 +4762,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -20.69548,
-        "posY": 0.960000038,
-        "posZ": -0.0154699329,
-        "rotX": 1.07238648E-05,
+        "posX": -24.7846375,
+        "posY": 0.9600005,
+        "posZ": -0.765651047,
+        "rotX": -3.97927852E-06,
         "rotY": 179.986969,
-        "rotZ": -2.32756588E-06,
+        "rotZ": 1.1879817E-07,
         "scaleX": 0.646238863,
         "scaleY": 1.0,
         "scaleZ": 0.646238863
@@ -4953,12 +4812,12 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -20.58825,
-        "posY": 0.959999442,
-        "posZ": -1.68357456,
-        "rotX": -1.6696009E-05,
+        "posX": -24.6774063,
+        "posY": 0.9599991,
+        "posZ": -2.433754,
+        "rotX": 6.327977E-07,
         "rotY": 179.981354,
-        "rotZ": -3.63329559E-06,
+        "rotZ": -1.51763834E-06,
         "scaleX": 0.639111,
         "scaleY": 1.0,
         "scaleZ": 0.639111
@@ -5003,10 +4862,10 @@
     {
       "Name": "Custom_Tile",
       "Transform": {
-        "posX": -18.8040619,
+        "posX": -22.893219,
         "posY": 1.16000009,
-        "posZ": -1.65209317,
-        "rotX": 2.9590376E-06,
+        "posZ": -2.4022727,
+        "rotX": 1.79709659E-05,
         "rotY": 180.0,
         "rotZ": 180.0,
         "scaleX": 0.639111,

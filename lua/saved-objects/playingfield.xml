@@ -15,5 +15,5 @@
         <Text>No:</Text>
         <Text id="no_vote_count">0</Text>
     </HorizontalLayout>
-    
+
 </VerticalLayout>
