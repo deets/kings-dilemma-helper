@@ -9,6 +9,21 @@ BOX = 3
 PLAYER_MAT_NAME = "player mat"
 STACKING = Vector(0, 1.2, 0)
 
+
+
+PLAYERMAT_TO_SIGIL = {}
+-- Diez
+PLAYERMAT_TO_SIGIL["051260"] = "0cfa3a"
+-- Max
+PLAYERMAT_TO_SIGIL["644377"] = "0e73cf"
+-- Stefan
+PLAYERMAT_TO_SIGIL["15a084"] = "6de63f"
+-- Natalia
+PLAYERMAT_TO_SIGIL["67a372"] = "1b22e5"
+-- Jan
+PLAYERMAT_TO_SIGIL["fc924b"] = "40fccf"
+
+
 function get_playingfield()
    return getObjectFromGUID(PLAYINGFIELD)
 end

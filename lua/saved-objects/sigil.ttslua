@@ -1,0 +1,7 @@
+function onLoad(save_state)
+   set_vote_count(20)
+end
+
+function set_vote_count(vote)
+   self.UI.setValue("vote-count", "" .. vote)
+end

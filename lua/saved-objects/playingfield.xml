@@ -5,7 +5,6 @@
 
 <VerticalLayout scale=".1" width="600" height="200" position="0 120 -22" rotation="0 0 180">
     <HorizontalLayout>
-        <Text>Resolve Vote</Text>
         <Button onClick="resolve(yes)">Yes</Button>
         <Button onClick="resolve(no)">No</Button>
     </HorizontalLayout>
@@ -15,5 +14,4 @@
         <Text>No:</Text>
         <Text id="no_vote_count">0</Text>
     </HorizontalLayout>
-
 </VerticalLayout>

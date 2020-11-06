@@ -1,0 +1,5 @@
+<Defaults>
+    <Text color="#DDDDDD" fontSize="40" alignment="Middle"/>
+</Defaults>
+
+<Text id="vote-count" scale="5" width="100" height="100" position="0 0 -220" rotation="-90 0 0">10</Text>

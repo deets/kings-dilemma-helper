@@ -69,6 +69,10 @@ function count_votes()
       local voting_state = player_mat.call("voting_state", {})
       yes_votes = yes_votes + voting_state.yes
       no_votes = no_votes + voting_state.no
+      local sigil = PLAYERMAT_TO_SIGIL[voting_state.mat]
+      if sigil then
+         getObjectFromGUID(sigil).call("set_vote_count", voting_state.yes + voting_state.no)
+      end
    end
    return { yes_votes=yes_votes, no_votes=no_votes }
 end
