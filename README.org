@@ -1,0 +1,15 @@
+* The King's Dilemma Helper
+
+This is a [[https://en.wikipedia.org/wiki/Tabletop_Simulator][Table Top Simulator]] game that supports a few key game
+mechanics for [[https://boardgamegeek.com/boardgame/245655/kings-dilemma][The King's Dilemma]].
+
+
+** TTS Notes
+
+ - images are imported with 50px corresponding to 1 unit.
+ - the top of the image shows in negative Z-direction
+ - the game considers 1 unit to be 5cm. So 10 pixel represent 1cm.
+ - z-axis is blue, x is red, y green.
+ - the coordinate-system is left-handed
+ - rotation is counter-clockwise in the direction of the axis
+ - when importing the standard cube from blender that is 2m^3, 1m translates to 1 unit in TTS

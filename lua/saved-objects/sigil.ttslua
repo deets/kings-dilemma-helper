@@ -3,5 +3,6 @@ function onLoad(save_state)
 end
 
 function set_vote_count(vote)
+   self.UI.setAttribute("vote-count", "active", vote != 0)
    self.UI.setValue("vote-count", "" .. vote)
 end
