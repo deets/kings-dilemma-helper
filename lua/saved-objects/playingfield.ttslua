@@ -5,6 +5,7 @@ VOTE_COUNT_PERIOD = 5
 
 voting_area_location = Vector(0, 0, 0.42)
 voting_area_extend = Vector(1, 0.15, 0)
+leftover_drop_off = Vector(0.4, 0.0, 0.42)
 
 function influence_markers_in_voting_area()
    return refineTableBy(
@@ -13,52 +14,90 @@ function influence_markers_in_voting_area()
    )
 end
 
-function resolve(_, vote)
-   local ims = influence_markers_in_voting_area()
-   local im_count = sum_value(ims)
+function get_pass_for_power_guids()
    local pms = get_all_player_mats()
    local pass_for_power = {}
    for _, player_mat in pairs(pms) do
       local g = player_mat.getGUID()
       if player_mat.call("voted_for_power", {}) then
-         log(g, "voted for power")
          table.insert(pass_for_power, g)
       end
    end
+   return pass_for_power
+end
 
-   if #pass_for_power > 0 and #ims > 0 then
-      local influence_to_distribute = math.floor((im_count - (im_count % #pass_for_power)) / #pass_for_power)
-      log(#pass_for_power, "players voting for power: ")
-      log(influence_to_distribute, "influence per player: ")
-      local current_influence_marker = table.remove(ims, 1)
-      for _, pm_guid in pairs(pass_for_power) do
-         local pillepalle = getObjectFromGUID(pm_guid)
-         local ppos = pillepalle.call("influence_placement_position", { gain=influence_to_distribute }) +  Vector(0, 3, 0)
-         for i=1, influence_to_distribute do
-            if current_influence_marker.getQuantity()  == -1 then
-               current_influence_marker.setPositionSmooth(ppos, false, false)
-               -- guard against over-drawing
-               if #ims > 0 then
-                  current_influence_marker = table.remove(ims, 1)
-               end
-            else -- we have a stack
-               local tp = {
-                  position = Vector(ppos),
-               }
-               current_influence_marker.takeObject(tp)
-            end
-            ppos = ppos + STACKING
+function resolve_coro()
+   log("resolve_coro")
+   local ims = influence_markers_in_voting_area()
+   if #ims > 0 then
+      group(ims)
+      for i=1,100 do
+         coroutine.yield(0)
+         ims = influence_markers_in_voting_area()
+         log(#ims, "frame:" .. i)
+         if #ims == 1 then
+            log("let me break free")
+            break
          end
       end
    end
-   -- always collect the money, it could be for power or arbittraion
+   if #ims == 1 then
+      _, stack = next(influence_markers_in_voting_area())
+      local im_count = stack.getQuantity()
+      local pass_for_power = get_pass_for_power_guids()
+      local leftover = im_count % #pass_for_power
+      log(leftover, "ims that are left over")
+      local lpos = relative_to_me(self, leftover_drop_off) + STACKING
+      for i=1,leftover do
+         local tp = {
+            position = Vector(lpos)
+         }
+         stack.takeObject(tp)
+         coroutine.yield(0)
+         lpos = lpos + STACKING_WITH_IM_OFFSET
+      end
+      -- now we wait until we get the expected number of
+      -- ims in total. The leftovers shouldn't be stacked!
+      for i=1,100 do
+         ims = influence_markers_in_voting_area()
+         if #ims == leftover + 1 then
+            break
+         end
+      end
+      if #ims == leftover + 1 then
+         local player_stacks = stack.split(#pass_for_power)
+         log(player_stacks, "player stacks")
+         -- just wait a few frames so we are sure we got the split
+         for i=1,10 do
+            coroutine.yield(0)
+         end
+         for i, pstack in pairs(player_stacks) do
+            log(i, "player number")
+            log(pstack, "player stack")
+            log(pass_for_power[i], "player mat guid")
+            local sigil = getObjectFromGUID(PLAYERMAT_TO_SIGIL[pass_for_power[i]])
+            log(sigil, "the player's sigil")
+            pstack.setPositionSmooth(sigil.getPosition() + STACKING)
+         end
+      end
+   end
+
    for _, pm in pairs(get_all_player_mats()) do
       pm.call("collect_pass_money", {})
    end
-   local cpos = self.getPosition() + rotated(voting_area_location, self.getRotation()) + STACKING
+
+   local cpos = relative_to_me(self, voting_area_location) + STACKING
    for _, thingamabob in pairs(get_all_player_mats()) do
       cpos = thingamabob.call("collect_votes", { vote=vote, position=cpos  })
    end
+
+   -- must return 1
+   log("resolve_coro: done")
+   return 1
+end
+
+function resolve(_, vote)
+   startLuaCoroutine(self, "resolve_coro")
 end
 
 function count_votes()

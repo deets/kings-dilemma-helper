@@ -8,7 +8,7 @@ ARBITRATION_HAMMER = "6aa521"
 BOX = 3
 PLAYER_MAT_NAME = "player mat"
 STACKING = Vector(0, 1.2, 0)
-
+STACKING_WITH_IM_OFFSET = Vector(1.0, 1.2, 0)
 
 
 PLAYERMAT_TO_SIGIL = {}
