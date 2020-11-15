@@ -197,6 +197,6 @@ function voting_state()
    res.yes = count_votes(yes_position_offset)
    res.no = count_votes(no_position_offset)
 
-   log(res, "voting state")
+   --log(res, "voting state")
    return res
 end
