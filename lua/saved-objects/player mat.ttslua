@@ -158,10 +158,10 @@ function collect_votes(params)
              marker.takeObject(tp)
              real_position = real_position + STACKING
              losing_position = losing_position + STACKING
-            end
-        end
-        marker.setPositionSmooth(real_position)
-        losing_position = losing_position + STACKING
+          end
+       end
+       marker.setPositionSmooth(real_position)
+       losing_position = losing_position + STACKING
     end
     return position
 end
