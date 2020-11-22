@@ -65,7 +65,12 @@ function resolve_coro()
          end
       end
       if #ims == leftover + 1 then
-         local player_stacks = stack.split(#pass_for_power)
+         local player_stacks = {}
+         if #pass_for_power > 1 then
+            player_stacks = stack.split(#pass_for_power)
+         else
+            table.insert(player_stacks, stack)
+         end
          log(player_stacks, "player stacks")
          -- just wait a few frames so we are sure we got the split
          for i=1,10 do
